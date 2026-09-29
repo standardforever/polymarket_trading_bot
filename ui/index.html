@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#07110f">
+  <title>BTC Five — Signal Console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css?v=20260927-polymarket-comparison">
+</head>
+<body>
+  <div class="shell">
+    <aside class="sidebar">
+      <a class="brand" href="#dashboard" aria-label="BTC Five dashboard">
+        <span class="brand-mark">₿</span><span><b>BTC FIVE</b><small>Signal console</small></span>
+      </a>
+      <nav>
+        <button class="nav-item active" data-view="dashboard"><span>⌁</span>Overview</button>
+        <button class="nav-item" data-view="history"><span>↺</span>Round history</button>
+        <button class="nav-item" data-view="trades"><span>⇄</span>Bot trades</button>
+        <button class="nav-item" data-view="modelPerformance"><span>◎</span>Model performance</button>
+        <button class="nav-item" data-view="modelRace"><span>◫</span>Model race</button>
+        <button class="nav-item" data-view="settings"><span>⚙</span>Strategy</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div class="connection"><i id="connectionDot"></i><span id="connectionText">Connecting</span></div>
+        <small>BTC · 5 minute markets</small>
+      </div>
+    </aside>
+
+    <main>
+      <header class="topbar">
+        <div><p class="eyebrow" id="viewEyebrow">LIVE OPERATIONS</p><h1 id="viewTitle">Market overview</h1></div>
+        <div class="top-actions"><span class="utc" id="clock">--:--:-- WAT</span><button class="icon-button" id="refreshButton" title="Refresh">↻</button></div>
+      </header>
+
+      <section class="view active" id="dashboardView">
+        <div class="status-strip">
+          <div><span>Collector</span><b id="collectorStatus">Checking</b></div>
+          <div><span>Current round</span><b class="mono" id="currentRound">—</b></div>
+          <div><span>Time remaining</span><b class="mono" id="countdown">—</b></div>
+          <div><span>Bot session balance</span><b id="bankroll">Not running</b></div>
+          <div><span>Real account value</span><b id="realBalance">Connecting</b></div>
+        </div>
+
+        <article class="automation-card">
+          <div class="automation-copy">
+            <span class="automation-mark">◎</span>
+            <div><span class="label">AUTOMATIC EXECUTION</span><strong>Let the bot trade qualified signals</strong><p id="autoTradingCopy">Checking trading-session runtime…</p></div>
+          </div>
+          <div class="automation-control">
+            <span class="pill muted" id="autoTradingStatus">CHECKING</span>
+            <label class="automation-switch" for="autoTradingToggle"><span>Trade automatically</span><input id="autoTradingToggle" type="checkbox" class="switch"></label>
+          </div>
+        </article>
+
+        <div class="hero-grid">
+          <article class="card signal-card">
+            <div class="card-head"><div><span class="label">CURRENT PREDICTION</span><small class="active-model-copy" id="activeModelCopy">BTC TWAP v2 · dashboard default</small></div><span class="pill muted" id="signalState">WAITING</span></div>
+            <div class="probability-grid">
+              <div class="probability-side up"><span>UP PROBABILITY</span><strong id="upProbability">—</strong><small>BTC settles above open</small></div>
+              <div class="probability-side down"><span>DOWN PROBABILITY</span><strong id="downProbability">—</strong><small>BTC settles below open</small></div>
+            </div>
+            <div class="probability-balance"><i id="upProbabilityBar"></i><i id="downProbabilityBar"></i></div>
+            <div class="recommendation neutral" id="recommendationBox">
+              <div class="recommendation-icon" id="directionArrow">·</div>
+              <div><span>BOT DECISION</span><strong id="recommendation">WAITING</strong><p id="signalMessage">Waiting for a complete market snapshot.</p></div>
+              <div class="risk-badge neutral" id="riskBadge"><span>RISK</span><b id="riskLevel">—</b></div>
+            </div>
+            <div class="risk-reasons" id="riskReasons"></div>
+            <div class="warning-row" id="warnings"></div>
+            <div class="signal-stats">
+              <div><span>Estimated edge</span><b id="edge">—</b></div>
+              <div><span>Decision TWAP gap</span><b id="distance">—</b></div>
+            </div>
+            <div class="model-comparison-head"><div><span class="label">MODEL COMPARISON</span><p id="modelConsensus">Waiting for every model to finish this round.</p></div></div>
+            <div class="model-comparison" id="modelComparison"></div>
+            <details class="model-analysis"><summary>Compare full model analysis</summary><div id="modelAnalysis"></div></details>
+          </article>
+
+          <article class="card market-card">
+            <div class="market-title">
+              <div class="coin-mark">₿</div>
+              <div><span class="label">POLYMARKET · LIVE</span><h2>BTC Up or Down 5m</h2><b id="selectedSideLabel">UP</b></div>
+              <span class="live-tag"><i></i>STREAMING</span>
+            </div>
+            <div class="trade-tabs"><button class="active">Buy</button><span>One-tap calculator</span></div>
+            <div class="outcome-selector">
+              <button class="outcome-button up active" data-side="Up"><span>Up</span><strong id="upAsk">—</strong></button>
+              <button class="outcome-button down" data-side="Down"><span>Down</span><strong id="downAsk">—</strong></button>
+            </div>
+            <div class="calculator-head"><div><span>One-tap buy</span><b id="priceSource">Using live best ask</b></div><button class="edit-link" id="editAmountsButton">✎ Edit amounts</button></div>
+            <div class="amount-editor hidden" id="amountEditor"><label>$<input type="number" min="1" step="0.01" value="1"></label><label>$<input type="number" min="1" step="0.01" value="50"></label><label>$<input type="number" min="1" step="0.01" value="100"></label><button id="saveAmountsButton">Save</button><button id="resetAmountsButton">Reset</button></div>
+            <div class="quick-amounts">
+              <button data-amount="1"><b>$1</b><span>win <em>—</em></span></button>
+              <button data-amount="50" class="active"><b>$50</b><span>win <em>—</em></span></button>
+              <button data-amount="100"><b>$100</b><span>win <em>—</em></span></button>
+            </div>
+            <label class="cash-input"><span>Cash amount</span><div><i>$</i><input id="cashAmount" type="number" min="1" step="0.01" value="50"></div></label>
+            <div class="return-summary">
+              <div><span>Shares</span><b id="estimatedShares">—</b></div>
+              <div><span>Total payout if correct</span><b id="potentialPayout">—</b></div>
+              <div><span>Profit</span><b id="potentialProfit">—</b></div>
+            </div>
+            <p class="calculator-note">Gross estimate using the streaming best ask. This does not place an order or include fees and slippage.</p>
+            <button class="real-buy-button" id="manualBuyButton" disabled>Review real buy</button>
+            <p class="real-trade-note" id="realTradeNote">Connecting your Polymarket account…</p>
+            <div class="active-position hidden" id="activePosition">
+              <div class="active-position-head"><span>YOUR LIVE POSITION</span><b id="activePositionSide">—</b></div>
+              <div class="active-position-grid">
+                <div><span>Shares</span><b id="activePositionShares">—</b></div>
+                <div><span>Average</span><b id="activePositionAverage">—</b></div>
+                <div><span>Sell price</span><b id="activePositionMark">—</b></div>
+                <div><span>Value</span><b id="activePositionValue">—</b></div>
+              </div>
+              <div class="active-position-pnl"><span>Unrealized profit / loss</span><strong id="activePositionPnl">—</strong></div>
+              <div class="active-position-sell"><input id="activePositionSellShares" aria-label="Shares to sell" type="number" min="0.000001" step="0.000001"><button id="activePositionSellButton">Review sell</button></div>
+              <small id="activePositionNote">Profit and loss uses the live executable bid.</small>
+            </div>
+            <div class="book-footer"><span>Model market agreement</span><b id="marketAgreement">—</b></div>
+          </article>
+        </div>
+
+        <article class="card chart-card">
+          <div class="card-head chart-head">
+            <div><span class="label">BTC PRICE · LIVE</span><h2>Price movement around the opening line</h2></div>
+            <div class="legend"><span><i class="price"></i>Current price</span><span><i class="open"></i>Opening price</span></div>
+          </div>
+          <div class="price-summary"><div><span>Open price · TWAP</span><b id="openingPrice">—</b></div><div><span>Current price · TWAP</span><b id="currentPrice">—</b></div><div><span>Margin · current − open</span><b id="priceMargin">—</b></div></div>
+          <div class="chart-wrap"><svg id="priceChart" role="img" aria-label="Live BTC price chart"></svg><div class="chart-empty" id="chartEmpty">Waiting for live price points…</div></div>
+        </article>
+
+        <article class="card real-positions-card">
+          <div class="card-head">
+            <div><span class="label">REAL POLYMARKET ACCOUNT</span><h2>Open positions</h2><p class="account-address" id="accountAddress">Connecting…</p></div>
+            <div class="account-summary"><span>Available</span><b id="positionsBalance">—</b></div>
+          </div>
+          <div class="position-list" id="realPositionList"><div class="empty-state">Loading account positions…</div></div>
+        </article>
+
+        <div class="detail-grid">
+          <article class="card">
+            <div class="card-head"><span class="label">CORE AGREEMENT</span><span id="agreementCount" class="pill muted">0 / 3</span></div>
+            <div class="agreement-list" id="agreementList"></div>
+          </article>
+          <article class="card">
+            <div class="card-head"><span class="label">MARKET CHARACTER</span><span class="pill muted" id="regime">UNKNOWN</span></div>
+            <div class="stability"><strong id="stabilityScore">—</strong><div class="meter"><i id="stabilityMeter"></i></div><p id="stabilityCopy">Movement history is still building.</p></div>
+            <div class="mini-stats"><span>30s range <b id="range30">—</b></span><span>120s range <b id="range120">—</b></span><span>Reversals <b id="reversals">—</b></span></div>
+          </article>
+        </div>
+
+        <div class="metrics" id="metrics"></div>
+      </section>
+
+      <section class="view" id="historyView">
+        <article class="card table-card">
+          <div class="table-tools"><div><span class="label">ALL EVALUATED ROUNDS</span><h2>Prediction history</h2></div><div class="filters"><select id="resultFilter"><option value="">All results</option><option>WIN</option><option>LOSS</option><option>SKIP</option><option>PENDING</option></select><select id="predictionFilter"><option value="">All predictions</option><option>Up</option><option>Down</option><option>SKIP</option></select><select id="tradedFilter"><option value="">All rounds</option><option value="true">Traded</option><option value="false">Not traded</option></select></div></div>
+          <div class="table-scroll"><table><thead><tr><th>Round</th><th>Default decision</th><th>Model comparison</th><th>Actual</th><th>Result</th><th>Default edge</th><th>Trade</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+          <div class="empty-state hidden" id="historyEmpty">No rounds match these filters.</div>
+          <div class="pagination" id="historyPagination"><button class="secondary-button" id="historyPrevious">Previous</button><span id="historyPageInfo">Page 1</span><button class="secondary-button" id="historyNext">Next</button></div>
+        </article>
+      </section>
+
+      <section class="view" id="tradesView">
+        <div class="paper-history-layout">
+          <article class="card session-browser">
+            <div class="card-head"><div><span class="label">TRADING SESSIONS</span><h2>Paper and real sessions</h2><p>Newest first</p></div><button class="secondary-button" id="newSessionButton">＋ New</button></div>
+            <div class="session-list" id="sessionList"></div>
+            <div class="empty-state hidden" id="sessionsEmpty">No trading sessions yet. Create one from the home page.</div>
+            <div class="pagination session-pagination" id="sessionsPagination"><button class="secondary-button" id="sessionsPrevious">Previous</button><span id="sessionsPageInfo">Page 1</span><button class="secondary-button" id="sessionsNext">Next</button></div>
+          </article>
+          <div class="session-detail-panel">
+            <article class="card session-summary-card">
+              <div class="card-head"><div><span class="label">SELECTED SESSION</span><h2 id="sessionLedgerTitle">Select a session</h2><p class="session-rules" id="sessionRules"></p></div><button class="secondary-button hidden" id="editSessionButton">Edit configuration</button></div>
+              <div class="metrics trade-metrics" id="tradeMetrics"></div>
+            </article>
+            <article class="card table-card">
+              <div class="table-tools"><div><span class="label">SESSION LEDGER</span><h2>Executed trades</h2></div><select id="tradeStatusFilter"><option value="">All statuses</option><option>WIN</option><option>LOSS</option><option>OPEN</option></select></div>
+              <div class="table-scroll"><table><thead><tr><th>Round</th><th>Side</th><th>Entry</th><th>Size</th><th>Cost</th><th>Status</th><th>Profit</th></tr></thead><tbody id="tradesBody"></tbody></table></div>
+              <div class="empty-state hidden" id="tradesEmpty">No executed trades found.</div>
+              <div class="pagination" id="tradesPagination"><button class="secondary-button" id="tradesPrevious">Previous</button><span id="tradesPageInfo">Page 1</span><button class="secondary-button" id="tradesNext">Next</button></div>
+            </article>
+            <article class="card session-events-card">
+              <div class="card-head"><div><span class="label">SESSION ACTIVITY</span><h2>Execution record</h2></div><span class="pill muted" id="sessionEventCount">0 EVENTS</span></div>
+              <div class="session-events" id="sessionEvents"><div class="empty-state">Select a session to inspect its activity.</div></div>
+              <div class="pagination" id="eventsPagination"><button class="secondary-button" id="eventsPrevious">Previous</button><span id="eventsPageInfo">Page 1</span><button class="secondary-button" id="eventsNext">Next</button></div>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="view" id="modelPerformanceView">
+        <div class="race-heading card">
+          <div><span class="label">FORWARD MODEL COMPARISON</span><h2>Equal-start performance</h2><p>Only activity recorded after a race starts is included. Missed opportunities require evidence that another model filled the same side at an acceptable price.</p></div>
+          <label><span>Comparison session</span><select id="racePerformanceSelector"></select></label>
+        </div>
+        <div class="race-model-grid" id="racePerformanceCards"><div class="empty-state">Start a model race to begin the forward comparison.</div></div>
+        <article class="card table-card race-detail-card">
+          <div class="table-tools"><div><span class="label">COMPLETE DECISION LEDGER</span><h2>Trades, skips and fillable opportunities</h2></div><div class="filters"><select id="raceModelFilter"><option value="">All models</option></select><select id="raceStateFilter"><option value="">All decisions</option><option>WIN</option><option>LOSS</option><option>OPEN</option><option>NO_FILL</option><option>SKIP</option></select><select id="raceOpportunityFilter"><option value="">All opportunities</option><option value="MISSED_WIN">Missed wins</option><option value="AVOIDED_LOSS">Avoided losses</option></select></div></div>
+          <div class="table-scroll"><table><thead><tr><th>Round</th><th>Model forecast</th><th>Decision</th><th>Warnings</th><th>Gap</th><th>Actual</th><th>Execution</th><th>Profit</th></tr></thead><tbody id="racePerformanceBody"></tbody></table></div>
+          <div class="empty-state hidden" id="racePerformanceEmpty">No records match these filters.</div>
+          <div class="pagination" id="racePagination"><button class="secondary-button" id="racePrevious">Previous</button><span id="racePageInfo">Page 1</span><button class="secondary-button" id="raceNext">Next</button></div>
+        </article>
+      </section>
+
+      <section class="view" id="modelRaceView">
+        <div class="race-control-layout">
+          <article class="card race-launch-card">
+            <div class="card-head"><div><span class="label">ISOLATED PAPER LAB</span><h2>Start all four models together</h2><p>Each model receives the same starting bankroll, then compounds independently using its own confidence and risk rules.</p></div><span class="pill muted" id="modelRaceStatus">READY</span></div>
+            <form id="modelRaceForm" class="session-form">
+              <label class="full"><span>Race name</span><input name="name" maxlength="60" placeholder="Four-model comparison"></label>
+              <label><span>Money for each model</span><div class="input-unit"><i>$</i><input name="starting_bankroll" type="number" min="1" step="0.01" value="100" required></div></label>
+              <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" value="20" required><i>%</i></div></label>
+              <label><span>Maximum per trade <small>Optional cap for every model</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>
+              <label><span>Minimum profit edge</span><div class="input-unit suffix"><input name="minimum_edge_percent" type="number" min="0" max="99" step="0.1" value="3" required><i>%</i></div></label>
+              <label><span>Stop new entries at</span><div class="input-unit suffix"><input name="entry_cutoff_seconds" type="number" min="5" max="109" step="1" value="30" required><i>sec</i></div></label>
+              <label><span>Thin-gap size</span><div class="input-unit suffix"><input name="thin_gap_allocation_percent" type="number" min="0" max="100" step="1" value="25" required><i>%</i></div></label>
+              <label><span>Movement-warning size</span><div class="input-unit suffix"><input name="movement_disagreement_allocation_percent" type="number" min="0" max="100" step="1" value="50" required><i>%</i></div></label>
+              <div class="race-form-actions full"><button class="primary-button" id="startModelRaceButton" type="submit">Start equal-bankroll race</button><button class="secondary-button hidden" id="stopModelRaceButton" type="button">Stop race</button></div>
+              <p class="form-message full" id="modelRaceMessage">This creates separate logs and never changes your normal paper or real trading session.</p>
+            </form>
+          </article>
+          <article class="card race-rules-card"><span class="label">MODEL DEFAULTS</span><h2>Rules used in this race</h2><div id="raceModelRules"></div></article>
+        </div>
+        <div class="race-model-grid" id="raceLiveCards"><div class="empty-state">No model race is selected.</div></div>
+        <article class="card table-card"><div class="table-tools"><div><span class="label">LIVE RACE ACTIVITY</span><h2>Latest model actions</h2></div><button class="secondary-button" id="openRacePerformanceButton">Open full performance</button></div><div class="table-scroll"><table><thead><tr><th>Round</th><th>Model</th><th>Forecast</th><th>State</th><th>Entry</th><th>Cost</th><th>Profit</th></tr></thead><tbody id="raceLiveBody"></tbody></table></div></article>
+      </section>
+
+      <section class="view" id="settingsView">
+        <div class="settings-layout">
+          <article class="card">
+            <div class="card-head"><div><span class="label">ENTRY RULES</span><h2>Strategy controls</h2></div><span class="pill warning">SAVED CONFIG</span></div>
+            <form id="settingsForm" class="settings-form">
+              <label><span>Confidence threshold <small>Minimum probability for a signal</small></span><div><input name="model_confidence_threshold" type="number" min="0.5" max="1" step="0.01"><em>ratio</em></div></label>
+              <label><span>Minimum profit edge <small>Required value after fees</small></span><div><input name="minimum_edge" type="number" min="0" max="0.99" step="0.01"><em>ratio</em></div></label>
+              <label><span>Stop looking for entry <small>No new fills at this time or below</small></span><div><input name="entry_stop_remaining_seconds" type="number" min="1" max="109" step="1"><em>seconds</em></div></label>
+              <label><span>Minimum liquidity <small>Visible shares needed at best ask</small></span><div><input name="minimum_liquidity_shares" type="number" min="1" step="1"><em>shares</em></div></label>
+              <label><span>Default maximum trades <small>Applied to new sessions; it can be cleared</small></span><div><input name="max_trades_per_day" type="number" min="0" max="288" step="1"><em>trades</em></div></label>
+              <label><span>Maximum trade value <small>Capital cap for one position</small></span><div><input name="max_trade_usd" type="number" min="1" step="1"><em>USD</em></div></label>
+              <label><span>Default session loss limit <small>Stop a new session after this realized loss</small></span><div><input name="max_daily_loss_usd" type="number" min="1" step="1"><em>USD</em></div></label>
+              <button class="primary-button" type="submit">Save strategy</button>
+              <p class="form-message" id="settingsMessage">Defaults are used when creating future trading sessions.</p>
+            </form>
+          </article>
+          <article class="card safety-card"><span class="label">EXECUTION STATUS</span><div class="safety-icon">◎</div><h2>Paper and activated real-money bot</h2><p>Choose the execution mode when starting a session. An activated real session submits qualified trades automatically without per-trade confirmation.</p><div class="capability-list" id="capabilityList"></div></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="roundDialog"><button class="dialog-close" id="dialogClose">×</button><div id="roundDetail"></div></dialog>
+  <dialog id="paperSessionDialog">
+    <button class="dialog-close" id="sessionDialogClose">×</button>
+    <p class="eyebrow">NEW TRADING SESSION</p><h2>Choose the mode and set the rules</h2>
+    <form id="paperSessionForm" class="session-form">
+      <div class="full mode-field"><span>Execution mode</span><div class="mode-choice"><label><input type="radio" name="mode" value="paper" checked><b>Paper</b><small>Simulation</small></label><label><input type="radio" name="mode" value="real"><b>Real money</b><small>Live account</small></label></div><small id="sessionModeCopy">Uses a simulated bankroll and never submits an exchange order.</small></div>
+      <label class="full"><span>Probability model <small>The selected release stays fixed for this session</small></span><select name="model_version" id="sessionModelVersion" required></select><small id="sessionModelCopy">Choose the probability formula this session will trade.</small></label>
+      <label class="full"><span>Session name <small>Optional label for this run</small></span><input name="name" maxlength="60" placeholder="Morning BTC session"></label>
+      <label id="startingBankrollField"><span>Starting balance</span><div class="input-unit"><i>$</i><input name="starting_bankroll" type="number" min="0.01" step="0.01" value="50" required></div><small id="startingBankrollCopy">Simulated money for this session.</small></label>
+      <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" value="80" required><i>%</i></div></label>
+      <label><span>Maximum per trade <small>Optional dollar cap</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>
+      <label><span>Minimum confidence</span><div class="input-unit suffix"><input name="confidence_percent" type="number" min="50" max="98" step="0.1" value="90" required><i>%</i></div></label>
+      <label><span>Minimum profit edge</span><div class="input-unit suffix"><input name="minimum_edge_percent" type="number" min="0" max="99" step="0.1" value="3" required><i>%</i></div></label>
+      <label><span>Stop new entries at</span><div class="input-unit suffix"><input name="entry_cutoff_seconds" type="number" min="5" max="109" step="1" value="30" required><i>sec</i></div></label>
+      <label><span>Thin-gap trade size <small>Percentage of the normal trade; 0 means skip</small></span><div class="input-unit suffix"><input name="thin_gap_allocation_percent" type="number" min="0" max="100" step="1" value="25" required><i>%</i></div></label>
+      <label><span>Movement-warning size <small>Percentage of the normal trade; 0 means skip</small></span><div class="input-unit suffix"><input name="movement_disagreement_allocation_percent" type="number" min="0" max="100" step="1" value="50" required><i>%</i></div></label>
+      <label><span>Maximum trades <small>Blank means no trade-count limit</small></span><input name="max_trades" type="number" min="1" max="288" step="1" placeholder="Until stopped"></label>
+      <label><span>Stop after profit <small>Optional realized profit target</small></span><div class="input-unit"><i>$</i><input name="target_profit_usd" type="number" min="0.01" step="0.01" placeholder="No target"></div></label>
+      <label><span>Stop after loss <small>Optional realized loss limit</small></span><div class="input-unit"><i>$</i><input name="max_loss_usd" type="number" min="0.01" step="0.01" placeholder="No limit"></div></label>
+      <div class="session-preview full"><span>Planned first-trade budget</span><strong id="sessionBudgetPreview">$40.00</strong><small id="sessionRiskBudgetPreview">Thin gap and movement-warning amounts will appear here.</small></div>
+      <div class="risk-rule-note full"><strong id="sessionRiskRuleTitle">Combined-risk protection</strong><span id="sessionRiskRuleCopy">A thin gap together with movement disagreement is always skipped.</span></div>
+      <p class="form-message full" id="sessionFormMessage"></p>
+      <button class="primary-button full" id="startSessionButton" type="submit">Start paper session</button>
+    </form>
+  </dialog>
+  <dialog id="paperSessionEditDialog">
+    <button class="dialog-close" id="editSessionDialogClose">×</button>
+    <p class="eyebrow">ACTIVE TRADING SESSION</p><h2>Edit runtime configuration</h2>
+    <p class="dialog-intro">Changes apply to future entries. Edge and cutoff changes also update an unfilled candidate currently being monitored. An open position keeps its original entry.</p>
+    <form id="paperSessionEditForm" class="session-form">
+      <label class="full"><span>Session name</span><input name="name" maxlength="60"></label>
+      <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" required><i>%</i></div></label>
+      <label><span>Maximum per trade <small>Optional dollar cap</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>
+      <label><span>Minimum confidence</span><div class="input-unit suffix"><input name="confidence_percent" type="number" min="50" max="98" step="0.1" required><i>%</i></div></label>
+      <label><span>Minimum profit edge</span><div class="input-unit suffix"><input name="minimum_edge_percent" type="number" min="0" max="99" step="0.1" required><i>%</i></div></label>
+      <label><span>Stop new entries at</span><div class="input-unit suffix"><input name="entry_cutoff_seconds" type="number" min="5" max="109" step="1" required><i>sec</i></div></label>
+      <label><span>Thin-gap trade size <small>Percentage of normal; 0 means skip</small></span><div class="input-unit suffix"><input name="thin_gap_allocation_percent" type="number" min="0" max="100" step="1" required><i>%</i></div></label>
+      <label><span>Movement-warning size <small>Percentage of normal; 0 means skip</small></span><div class="input-unit suffix"><input name="movement_disagreement_allocation_percent" type="number" min="0" max="100" step="1" required><i>%</i></div></label>
+      <label><span>Maximum trades <small>Blank means no limit</small></span><input name="max_trades" type="number" min="1" max="288" step="1" placeholder="Until stopped"></label>
+      <label><span>Stop after profit</span><div class="input-unit"><i>$</i><input name="target_profit_usd" type="number" min="0.01" step="0.01" placeholder="No target"></div></label>
+      <label><span>Stop after loss</span><div class="input-unit"><i>$</i><input name="max_loss_usd" type="number" min="0.01" step="0.01" placeholder="No limit"></div></label>
+      <div class="session-preview full"><span>Next-trade budget</span><strong id="editSessionBudgetPreview">—</strong><small id="editSessionRiskBudgetPreview">Thin gap and movement-warning amounts will appear here.</small></div>
+      <div class="risk-rule-note full"><strong id="editSessionRiskRuleTitle">Combined-risk protection</strong><span id="editSessionRiskRuleCopy">A thin gap together with movement disagreement is always skipped.</span></div>
+      <p class="form-message full" id="editSessionFormMessage"></p>
+      <button class="primary-button full" type="submit">Apply changes</button>
+    </form>
+  </dialog>
+  <dialog id="orderDialog" class="order-dialog">
+    <button class="dialog-close" id="orderDialogClose">×</button>
+    <p class="eyebrow">REAL MONEY ORDER</p><h2 id="orderDialogTitle">Review order</h2>
+    <div class="order-review" id="orderReview"></div>
+    <p class="order-warning">Submitting sends a real fill-or-kill order to Polymarket. It fills completely within the shown price protection or does not fill. A buy's displayed amount is the market-order principal; Polymarket fees may be charged separately.</p>
+    <p class="form-message" id="orderMessage"></p>
+    <div class="dialog-actions"><button class="secondary-button" id="cancelOrderButton">Cancel</button><button class="primary-button danger-action" id="confirmOrderButton">Confirm real order</button></div>
+  </dialog>
+  <div class="toast" id="toast"></div>
+  <script src="config.js"></script>
+  <script type="module" src="app.js?v=20260927-real-trading-audit"></script>
+</body>
+</html>
