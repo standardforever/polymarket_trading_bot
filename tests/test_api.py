@@ -141,19 +141,6 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(response.json()["decision"]["p_up"], .94)
         self.assertEqual(len(response.json()["paper_trades"]), 1)
 
-    def test_settings_are_validated_and_persisted(self):
-        response = self.client.patch("/api/v1/settings", json={
-            "model_confidence_threshold": .92, "minimum_edge": .04,
-            "max_trades_per_day": 6, "automatic_trading_enabled": True,
-        })
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["values"]["model_confidence_threshold"], .92)
-        self.assertTrue((self.data / "config" / "strategy.json").exists())
-        self.assertFalse(response.json()["applied_to_running_trader"])
-        invalid = self.client.patch("/api/v1/settings", json={
-            "decision_window_close_seconds": 125})
-        self.assertEqual(invalid.status_code, 422)
-
     def test_ui_can_create_inspect_and_stop_a_paper_session(self):
         manager = PaperSessionManager(self.data)
         client = TestClient(create_app(self.data, paper_sessions=manager))

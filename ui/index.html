@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20260927-polymarket-comparison">
+  <link rel="stylesheet" href="styles.css?v=20261008-strategy-cleanup">
 </head>
 <body>
   <div class="shell">
@@ -20,7 +20,6 @@
         <button class="nav-item active" data-view="dashboard"><span>⌁</span>Overview</button>
         <button class="nav-item" data-view="history"><span>↺</span>Round history</button>
         <button class="nav-item" data-view="trades"><span>⇄</span>Bot trades</button>
-        <button class="nav-item" data-view="settings"><span>⚙</span>Strategy</button>
       </nav>
       <div class="sidebar-foot">
         <div class="connection"><i id="connectionDot"></i><span id="connectionText">Connecting</span></div>
@@ -190,25 +189,6 @@
         </div>
       </section>
 
-      <section class="view" id="settingsView">
-        <div class="settings-layout">
-          <article class="card">
-            <div class="card-head"><div><span class="label">ENTRY RULES</span><h2>Strategy controls</h2></div><span class="pill warning">SAVED CONFIG</span></div>
-            <form id="settingsForm" class="settings-form">
-              <label><span>Confidence threshold <small>Minimum probability for a signal</small></span><div><input name="model_confidence_threshold" type="number" min="0.5" max="1" step="0.01"><em>ratio</em></div></label>
-              <label><span>Minimum profit edge <small>Required value after fees</small></span><div><input name="minimum_edge" type="number" min="0" max="0.99" step="0.01"><em>ratio</em></div></label>
-              <label><span>Stop looking for entry <small>No new fills at this time or below</small></span><div><input name="entry_stop_remaining_seconds" type="number" min="1" max="109" step="1"><em>seconds</em></div></label>
-              <label><span>Minimum liquidity <small>Visible shares needed at best ask</small></span><div><input name="minimum_liquidity_shares" type="number" min="1" step="1"><em>shares</em></div></label>
-              <label><span>Default maximum trades <small>Applied to new sessions; it can be cleared</small></span><div><input name="max_trades_per_day" type="number" min="0" max="288" step="1"><em>trades</em></div></label>
-              <label><span>Maximum trade value <small>Capital cap for one position</small></span><div><input name="max_trade_usd" type="number" min="1" step="1"><em>USD</em></div></label>
-              <label><span>Default session loss limit <small>Stop a new session after this realized loss</small></span><div><input name="max_daily_loss_usd" type="number" min="1" step="1"><em>USD</em></div></label>
-              <button class="primary-button" type="submit">Save strategy</button>
-              <p class="form-message" id="settingsMessage">Defaults are used when creating future trading sessions.</p>
-            </form>
-          </article>
-          <article class="card safety-card"><span class="label">EXECUTION STATUS</span><div class="safety-icon">◎</div><h2>Paper and activated real-money bot</h2><p>Choose the execution mode when starting a session. An activated real session submits qualified trades automatically without per-trade confirmation.</p><div class="capability-list" id="capabilityList"></div></article>
-        </div>
-      </section>
     </main>
   </div>
 
@@ -269,6 +249,6 @@
   </dialog>
   <div class="toast" id="toast"></div>
   <script src="config.js"></script>
-  <script type="module" src="app.js?v=20260927-real-trading-audit"></script>
+  <script type="module" src="app.js?v=20261008-strategy-cleanup"></script>
 </body>
 </html>

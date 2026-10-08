@@ -60,8 +60,6 @@ class BotRepository:
             "paper_trading": True,
             "live_trading": False,
             "manual_orders": False,
-            "settings_persisted": True,
-            "settings_applied_to_running_collector": False,
             "live_websocket": True,
         }
 

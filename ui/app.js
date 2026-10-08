@@ -1,7 +1,7 @@
 const API = (window.BOT_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 const WS = API.replace(/^http/, "ws");
 const $ = (id) => document.getElementById(id);
-const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, settings: null, account: null, orderPreview: null, models: [], defaultModel: "btc_twap_v2",
+const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, account: null, orderPreview: null, models: [], defaultModel: "btc_twap_v2",
   pages: {
     history: { offset: 0, limit: 25, total: 0 },
     sessions: { offset: 0, limit: 8, total: 0 },
@@ -893,28 +893,6 @@ async function loadPaperSessions() {
   if (state.live) renderLive();
 }
 
-function renderSettings() {
-  const values = state.settings || {};
-  const form = $("settingsForm");
-  Object.entries(values).forEach(([key,value]) => { const input = form.elements[key]; if (!input) return; input.type === "checkbox" ? input.checked = value : input.value = value; });
-  const c = state.dashboard?.capabilities || {};
-  $("capabilityList").innerHTML = [["Paper sessions", c.paper_session_runtime], ["Automatic real trading", c.automatic_real_trading], ["Manual real orders", c.manual_orders], ["Live WebSocket", c.live_websocket]].map(([name,on]) => `<div><span>${name}</span><b>${on ? "AVAILABLE" : "DISABLED"}</b></div>`).join("");
-  renderPaperControl();
-}
-
-async function saveSettings(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const fields = ["model_confidence_threshold", "minimum_edge", "entry_stop_remaining_seconds", "minimum_liquidity_shares", "max_trades_per_day", "max_trade_usd", "max_daily_loss_usd"];
-  const payload = Object.fromEntries(fields.map(key => [key, Number(form.elements[key].value)]));
-  try {
-    const result = await request("/api/v1/settings", { method: "PATCH", body: JSON.stringify(payload) });
-    state.settings = result.values; renderSettings();
-    $("settingsMessage").textContent = "Defaults saved for future sessions. Active-session rules stay fixed.";
-    toast("Strategy saved");
-  } catch (error) { $("settingsMessage").textContent = error.message; }
-}
-
 async function toggleAutomaticTrading(event) {
   const toggle = event.currentTarget;
   const active = activeSession();
@@ -1119,16 +1097,6 @@ function openPaperSessionDialog() {
   const form = $("paperSessionForm");
   form.reset();
   form.elements.mode.value = "paper";
-  const defaults = state.settings || {};
-  form.elements.allocation_percent.value = Number(defaults.allocation_fraction_above_threshold ?? .8) * 100;
-  form.elements.confidence_percent.value = Number(defaults.model_confidence_threshold ?? .9) * 100;
-  form.elements.minimum_edge_percent.value = Number(defaults.minimum_edge ?? .03) * 100;
-  form.elements.entry_cutoff_seconds.value = Number(defaults.entry_stop_remaining_seconds ?? 30);
-  form.elements.thin_gap_allocation_percent.value = 25;
-  form.elements.movement_disagreement_allocation_percent.value = 50;
-  form.elements.maximum_trade_usd.value = defaults.max_trade_usd ?? "";
-  form.elements.max_trades.value = defaults.max_trades_per_day ?? "";
-  form.elements.max_loss_usd.value = defaults.max_daily_loss_usd ?? "";
   renderModelChoices(state.defaultModel, true);
   $("sessionFormMessage").textContent = "";
   syncSessionMode();
@@ -1178,13 +1146,13 @@ async function startPaperSession(event) {
 async function refresh() {
   try {
     const [dashboard, chart, health, account] = await Promise.all([request("/api/v1/dashboard"), request("/api/v1/live/chart"), request("/health"), request("/api/v1/account")]);
-    state.dashboard = dashboard; state.live = dashboard.live; state.chart = chart; state.health = health; state.settings = dashboard.settings; state.account = account;
+    state.dashboard = dashboard; state.live = dashboard.live; state.chart = chart; state.health = health; state.account = account;
     state.models = dashboard.models || state.models;
     state.defaultModel = dashboard.default_model || state.defaultModel;
     renderModelChoices();
     $("collectorStatus").textContent = health.collector.fresh ? "Live" : health.collector.available ? "Stale" : "Offline";
     $("collectorStatus").className = health.collector.fresh ? "positive" : "negative";
-    renderLive(); renderCharts(); renderStatistics(); renderSettings(); renderAccount();
+    renderLive(); renderCharts(); renderStatistics(); renderAccount();
     const followups = [loadPaperSessions()];
     if ($("historyView").classList.contains("active")) followups.push(loadRounds());
     await Promise.all(followups);
@@ -1259,7 +1227,7 @@ function changeView(name) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(v => v.classList.toggle("active", v.dataset.view === name));
   $(`${name}View`).classList.add("active");
-  const titles = { dashboard: ["LIVE OPERATIONS", "Market overview"], history: ["PERFORMANCE", "Round history"], trades: ["BOT EXECUTION", "Trade ledger"], settings: ["CONFIGURATION", "Strategy settings"] };
+  const titles = { dashboard: ["LIVE OPERATIONS", "Market overview"], history: ["PERFORMANCE", "Round history"], trades: ["BOT EXECUTION", "Trade ledger"] };
   [$("viewEyebrow").textContent, $("viewTitle").textContent] = titles[name];
   history.replaceState(null, "", `#${name}`);
   if (name === "history") loadRounds().catch(error => toast(error.message));
@@ -1283,7 +1251,6 @@ $("tradesPrevious").addEventListener("click", () => movePage("trades", -1, reloa
 $("tradesNext").addEventListener("click", () => movePage("trades", 1, reloadSelectedSession));
 $("eventsPrevious").addEventListener("click", () => movePage("events", -1, reloadSelectedSession));
 $("eventsNext").addEventListener("click", () => movePage("events", 1, reloadSelectedSession));
-$("settingsForm").addEventListener("submit", saveSettings);
 $("autoTradingToggle").addEventListener("change", toggleAutomaticTrading);
 $("newSessionButton").addEventListener("click", openPaperSessionDialog);
 $("paperSessionForm").addEventListener("submit", startPaperSession);
@@ -1367,6 +1334,6 @@ setInterval(async () => {
 }, 5000);
 
 const initialView = location.hash.slice(1);
-if (["history", "trades", "settings"].includes(initialView)) changeView(initialView);
+if (["history", "trades"].includes(initialView)) changeView(initialView);
 refresh();
 connectSockets();

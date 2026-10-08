@@ -99,7 +99,7 @@ bot/trading.py          shared fee and order-book rules
 bot/paper.py            paper execution and bankroll calculations
 bot/paper_sessions.py   API-managed session lifecycle
 bot/account.py          real-account reads and manual order execution
-bot/api/                FastAPI routes, settings, and history repository
+bot/api/                FastAPI routes and history repository
 tests/                  maintained behavior tests
 ui/                     separate browser dashboard
 ```
@@ -127,8 +127,6 @@ The prediction uses the official opening price and settlement estimate, recent B
 - `GET /api/v1/trading/sessions/{session_id}`
 - `PATCH /api/v1/trading/sessions/{session_id}`
 - `POST /api/v1/trading/sessions/{session_id}/stop`
-- `GET /api/v1/settings`
-- `PATCH /api/v1/settings`
 - `GET /api/v1/account`
 - `POST /api/v1/account/orders/preview`
 - `POST /api/v1/account/orders`
@@ -143,9 +141,6 @@ allowance, a reviewed maximum price, and maximum spend. Sells are capped by the
 current position and a reviewed minimum price. Both use fill-or-kill execution,
 so a partial fill is not left behind. The API checks the live feed and the
 authoritative Polymarket market state again immediately before submission.
-
-Settings are persisted for the UI. The current collector does not apply saved
-changes yet; the API reports this explicitly.
 
 ## UI
 

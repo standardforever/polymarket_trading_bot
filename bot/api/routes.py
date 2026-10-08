@@ -10,7 +10,6 @@ from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnec
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field, model_validator
 
-from .config import SettingsStore, StrategySettingsPatch
 from .repository import BotRepository
 from ..live import LiveStore
 from ..models import DEFAULT_MODEL, model_releases, validate_model_version
@@ -147,19 +146,16 @@ class ManualOrderExecute(BaseModel):
 
 
 def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None = None,
-               settings_store: SettingsStore | None = None,
                paper_sessions: PaperSessionManager | None = None,
                account: PolymarketAccount | None = None) -> FastAPI:
     data = Path(data_dir)
     repository = BotRepository(data)
-    settings = settings_store or SettingsStore(data / "config" / "strategy.json")
     app = FastAPI(title="BTC 5-Minute Agent API", version="1.0.0")
     app.add_middleware(CORSMiddleware, allow_origins=[
                            "http://localhost:3000", "http://127.0.0.1:3000",
                            "http://localhost:5173", "http://127.0.0.1:5173"],
                        allow_credentials=True, allow_methods=["*"], allow_headers=["*"])
     app.state.repository = repository
-    app.state.settings = settings
     app.state.live_store = live_store
     app.state.paper_sessions = paper_sessions
     app.state.account = account
@@ -185,7 +181,7 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
     @app.get("/api/v1/dashboard")
     def dashboard():
         return {"live": repository.live(), "statistics": repository.statistics(),
-                "settings": settings.read(), "capabilities": capabilities_payload(),
+                "capabilities": capabilities_payload(),
                 "models": model_releases(), "default_model": DEFAULT_MODEL}
 
     @app.get("/api/v1/models")
@@ -399,23 +395,6 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
         except ValueError as error:
             raise HTTPException(409, "Paper session is not active") from error
         return {"session_id": session_id, "status": "STOPPING"}
-
-    @app.get("/api/v1/settings")
-    def get_settings():
-        return {"values": settings.read(),
-                "applied_to_running_collector": False,
-                "applied_to_running_trader": False,
-                "restart_required": False}
-
-    @app.patch("/api/v1/settings")
-    def update_settings(patch: StrategySettingsPatch):
-        try:
-            updated = settings.update(patch)
-        except ValueError as error:
-            raise HTTPException(422, str(error)) from error
-        return {"values": updated, "applied_to_running_collector": False,
-                "applied_to_running_trader": False,
-                "restart_required": False}
 
     @app.get("/api/v1/account")
     def account_snapshot():
