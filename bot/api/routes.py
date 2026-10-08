@@ -15,7 +15,6 @@ from .repository import BotRepository
 from ..live import LiveStore
 from ..models import DEFAULT_MODEL, model_releases, validate_model_version
 from ..paper_sessions import PaperSessionManager
-from ..model_race import ModelRaceManager
 from ..account import PolymarketAccount
 
 
@@ -147,46 +146,10 @@ class ManualOrderExecute(BaseModel):
     preview_id: str = Field(min_length=32, max_length=32, pattern=r"^[a-f0-9]+$")
 
 
-class ModelRaceCreate(BaseModel):
-    name: str | None = Field(None, max_length=60)
-    starting_bankroll: float = Field(100, gt=0, le=1_000_000)
-    allocation_percent: float = Field(20, gt=0, le=100)
-    maximum_trade_usd: float | None = Field(None, gt=0, le=1_000_000)
-    minimum_edge_percent: float = Field(3, ge=0, lt=100)
-    entry_cutoff_seconds: float = Field(30, ge=5, lt=110)
-    thin_gap_allocation_percent: float = Field(25, ge=0, le=100)
-    movement_disagreement_allocation_percent: float = Field(50, ge=0, le=100)
-
-    @model_validator(mode="after")
-    def validate_race(self):
-        if (self.maximum_trade_usd is not None
-                and self.maximum_trade_usd > self.starting_bankroll):
-            raise ValueError("maximum trade cannot exceed starting bankroll")
-        if self.name is not None:
-            self.name = self.name.strip() or None
-        return self
-
-    def runtime_configuration(self):
-        return {
-            "name": self.name, "starting_bankroll": self.starting_bankroll,
-            "allocation_fraction": self.allocation_percent / 100,
-            "maximum_trade_usd": self.maximum_trade_usd,
-            "minimum_edge": self.minimum_edge_percent / 100,
-            "entry_cutoff_seconds": self.entry_cutoff_seconds,
-            "thin_gap_allocation_fraction": self.thin_gap_allocation_percent / 100,
-            "movement_disagreement_allocation_fraction": (
-                self.movement_disagreement_allocation_percent / 100),
-            "planned_first_trade_budget": min(
-                self.starting_bankroll * self.allocation_percent / 100,
-                self.maximum_trade_usd or self.starting_bankroll),
-        }
-
-
 def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None = None,
                settings_store: SettingsStore | None = None,
                paper_sessions: PaperSessionManager | None = None,
-               account: PolymarketAccount | None = None,
-               model_races: ModelRaceManager | None = None) -> FastAPI:
+               account: PolymarketAccount | None = None) -> FastAPI:
     data = Path(data_dir)
     repository = BotRepository(data)
     settings = settings_store or SettingsStore(data / "config" / "strategy.json")
@@ -200,7 +163,6 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
     app.state.live_store = live_store
     app.state.paper_sessions = paper_sessions
     app.state.account = account
-    app.state.model_races = model_races
 
     def capabilities_payload():
         payload = repository.capabilities()
@@ -210,7 +172,6 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
         payload["manual_orders"] = payload["live_trading"]
         payload["automatic_real_trading"] = bool(
             paper_sessions is not None and payload["live_trading"])
-        payload["model_races"] = model_races is not None
         return payload
 
     @app.get("/health")
@@ -275,40 +236,6 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
     @app.get("/api/v1/statistics")
     def statistics():
         return repository.statistics()
-
-    @app.get("/api/v1/model-races")
-    def model_race_list():
-        if model_races is None:
-            return {"items": [], "active": False}
-        return {"items": model_races.list(), "active": model_races.is_active()}
-
-    @app.post("/api/v1/model-races", status_code=201)
-    def model_race_start(request: ModelRaceCreate):
-        if model_races is None:
-            raise HTTPException(503, "Model-race runtime is unavailable")
-        try:
-            return model_races.start(request.runtime_configuration())
-        except ValueError as error:
-            raise HTTPException(409, str(error).replace("_", " ")) from error
-
-    @app.get("/api/v1/model-races/{race_id}")
-    def model_race_detail(race_id: str):
-        if model_races is None:
-            raise HTTPException(503, "Model-race runtime is unavailable")
-        race = model_races.detail(race_id)
-        if race is None:
-            raise HTTPException(404, "Model race not found")
-        return race
-
-    @app.post("/api/v1/model-races/{race_id}/stop")
-    def model_race_stop(race_id: str):
-        if model_races is None:
-            raise HTTPException(503, "Model-race runtime is unavailable")
-        try:
-            model_races.stop(race_id)
-        except ValueError as error:
-            raise HTTPException(409, "Model race is not active") from error
-        return {"race_id": race_id, "status": "STOPPING"}
 
     @app.get("/api/v1/paper/sessions")
     def paper_session_list(

@@ -1,18 +1,17 @@
 const API = (window.BOT_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 const WS = API.replace(/^http/, "ws");
 const $ = (id) => document.getElementById(id);
-const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, settings: null, account: null, orderPreview: null, models: [], defaultModel: "btc_twap_v2", modelRaces: [], selectedRaceId: null, raceDetail: null,
+const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, settings: null, account: null, orderPreview: null, models: [], defaultModel: "btc_twap_v2",
   pages: {
     history: { offset: 0, limit: 25, total: 0 },
     sessions: { offset: 0, limit: 8, total: 0 },
     trades: { offset: 0, limit: 25, total: 0 },
     events: { offset: 0, limit: 25, total: 0 },
-    race: { offset: 0, limit: 25, total: 0 },
   },
 };
 const calculator = { side: "Up", amount: 50, presets: [1, 50, 100] };
 let liveSocket, chartSocket, quoteSocket, referenceSocket, accountSocket, reconnectTimer;
-let sessionPollInFlight = false, racePollInFlight = false;
+let sessionPollInFlight = false;
 
 const fmt = {
   percent: (value, digits = 1) => value == null ? "—" : `${(Number(value) * 100).toFixed(digits)}%`,
@@ -899,7 +898,7 @@ function renderSettings() {
   const form = $("settingsForm");
   Object.entries(values).forEach(([key,value]) => { const input = form.elements[key]; if (!input) return; input.type === "checkbox" ? input.checked = value : input.value = value; });
   const c = state.dashboard?.capabilities || {};
-  $("capabilityList").innerHTML = [["Paper sessions", c.paper_session_runtime], ["Model races", c.model_races], ["Automatic real trading", c.automatic_real_trading], ["Manual real orders", c.manual_orders], ["Live WebSocket", c.live_websocket]].map(([name,on]) => `<div><span>${name}</span><b>${on ? "AVAILABLE" : "DISABLED"}</b></div>`).join("");
+  $("capabilityList").innerHTML = [["Paper sessions", c.paper_session_runtime], ["Automatic real trading", c.automatic_real_trading], ["Manual real orders", c.manual_orders], ["Live WebSocket", c.live_websocket]].map(([name,on]) => `<div><span>${name}</span><b>${on ? "AVAILABLE" : "DISABLED"}</b></div>`).join("");
   renderPaperControl();
 }
 
@@ -1176,112 +1175,6 @@ async function startPaperSession(event) {
   }
 }
 
-function raceModelCard(model) {
-  const status = model.status || {};
-  const decided = Number(model.wins || 0) + Number(model.losses || 0);
-  const accuracy = decided ? Number(model.wins) / decided : null;
-  const pnl = Number(status.realized_profit || 0);
-  return `<article class="card race-model-card ${model.model_version === "btc_guard_v4" ? "featured" : ""}">
-    <div class="race-model-title"><div><span>${escapeHtml(model.name)}</span><small>${escapeHtml(model.model_version)}</small></div>${badge(status.status || "WAITING")}</div>
-    <div class="race-balance"><span>AVAILABLE BALANCE</span><strong>${fmt.usd(status.available_bankroll)}</strong><em class="${pnl >= 0 ? "positive" : "negative"}">${pnl >= 0 ? "+" : ""}${fmt.usd(pnl)}</em></div>
-    <div class="race-card-stats"><span>Trades<b>${model.trades || 0}</b></span><span>W / L<b>${model.wins || 0} / ${model.losses || 0}</b></span><span>Accuracy<b>${fmt.percent(accuracy)}</b></span><span>Missed wins<b>${model.missed_wins || 0}</b></span></div>
-    <p>${fmt.percent(model.confidence)} threshold · ${escapeHtml(riskRuleText(model.model_version).session)}</p>
-  </article>`;
-}
-
-function renderRaceRules() {
-  $("raceModelRules").innerHTML = state.models.map(model => `<div class="race-rule-row"><div><strong>${escapeHtml(model.name)}</strong><small>${escapeHtml(model.description || "")}</small></div><span>${fmt.percent(model.recommended_confidence)}</span><p>${escapeHtml(riskRuleText(model.id).copy)}</p></div>`).join("");
-  const filter = $("raceModelFilter"), selected = filter.value;
-  filter.innerHTML = `<option value="">All models</option>` + state.models.map(model => `<option value="${escapeHtml(model.id)}">${escapeHtml(model.name)}</option>`).join("");
-  filter.value = selected;
-}
-
-function raceRoundRows() {
-  if (!state.raceDetail) return [];
-  return state.raceDetail.models.flatMap(model => (model.rounds || []).map(round => ({ ...round, model_version: model.model_version, model_name: model.name })));
-}
-
-function renderModelRace() {
-  renderRaceRules();
-  const race = state.raceDetail;
-  const active = race?.status === "RUNNING";
-  $("modelRaceStatus").textContent = race?.status || "READY";
-  $("modelRaceStatus").className = `pill ${active ? "signal" : "muted"}`;
-  $("startModelRaceButton").disabled = active;
-  $("stopModelRaceButton").classList.toggle("hidden", !active);
-  $("raceLiveCards").innerHTML = race ? race.models.map(raceModelCard).join("") : `<div class="empty-state">No model race is selected.</div>`;
-  const rows = raceRoundRows().sort((a, b) => Number(b.start || 0) - Number(a.start || 0)).slice(0, 24);
-  $("raceLiveBody").innerHTML = rows.map(row => `<tr><td>${escapeHtml(row.slug?.replace("btc-updown-5m-", "#") || "—")}</td><td><b>${escapeHtml(row.model_name)}</b></td><td class="${sideClass(row.side)}">${row.side || "—"} ${fmt.percent(row.probability)}</td><td>${badge(row.state)}</td><td>${fmt.cents(row.entry_price)}</td><td>${fmt.usd(row.cost)}</td><td class="${Number(row.profit || 0) >= 0 ? "positive" : "negative"}">${fmt.usd(row.profit)}</td></tr>`).join("");
-  prepareMobileTables();
-}
-
-function renderRacePerformance() {
-  const selector = $("racePerformanceSelector"), selected = state.selectedRaceId;
-  selector.innerHTML = state.modelRaces.length ? state.modelRaces.map(race => `<option value="${escapeHtml(race.race_id)}">${escapeHtml(race.name)} · ${new Date(race.created_ms).toLocaleString()}</option>`).join("") : `<option value="">No races yet</option>`;
-  if (selected) selector.value = selected;
-  const race = state.raceDetail;
-  $("racePerformanceCards").innerHTML = race ? race.models.map(raceModelCard).join("") : `<div class="empty-state">Start a model race to begin the forward comparison.</div>`;
-  const modelFilter = $("raceModelFilter").value, stateFilter = $("raceStateFilter").value, opportunityFilter = $("raceOpportunityFilter").value;
-  const matchingRows = raceRoundRows().filter(row => (!modelFilter || row.model_version === modelFilter) && (!stateFilter || row.state === stateFilter) && (!opportunityFilter || row.opportunity === opportunityFilter)).sort((a, b) => Number(b.start || 0) - Number(a.start || 0));
-  const page = state.pages.race;
-  page.total = matchingRows.length;
-  if (page.offset >= page.total && page.total) page.offset = Math.floor((page.total - 1) / page.limit) * page.limit;
-  const rows = matchingRows.slice(page.offset, page.offset + page.limit);
-  $("racePerformanceBody").innerHTML = rows.map(row => {
-    const warnings = [...(row.warnings || [])];
-    if (row.regime) warnings.push(row.regime);
-    const gap = row.spot_gap_bps == null ? "—" : `${fmt.num(row.spot_gap_bps, 1)} spot · ${fmt.num(row.twap_gap_bps, 1)} TWAP`;
-    const execution = row.opportunity ? row.opportunity.replaceAll("_", " ") : row.entry_price != null ? `${fmt.cents(row.entry_price)} · ${fmt.usd(row.cost)}` : humanReason(row.execution_reason || row.reason);
-    return `<tr><td>${escapeHtml(row.slug?.replace("btc-updown-5m-", "#") || "—")}<small>${escapeHtml(row.model_name)}</small></td><td class="${sideClass(row.side)}"><b>${row.side || "—"}</b> ${fmt.percent(row.probability)}</td><td>${row.decision || "SKIP"}<small>${escapeHtml(humanReason(row.reason))}</small></td><td>${warnings.length ? warnings.map(value => `<span class="warning-chip">${escapeHtml(String(value).replaceAll("_", " "))}</span>`).join(" ") : "—"}</td><td class="mono">${gap}</td><td>${row.actual || "Pending"}</td><td>${escapeHtml(execution)}</td><td class="${Number(row.profit || 0) >= 0 ? "positive" : "negative"}">${fmt.usd(row.profit)}</td></tr>`;
-  }).join("");
-  $("racePerformanceEmpty").classList.toggle("hidden", rows.length > 0);
-  renderPagination("race");
-  prepareMobileTables();
-}
-
-async function loadModelRaces() {
-  if (!state.dashboard?.capabilities?.model_races) return;
-  const result = await request("/api/v1/model-races");
-  state.modelRaces = result.items || [];
-  if (!state.selectedRaceId || !state.modelRaces.some(race => race.race_id === state.selectedRaceId)) state.selectedRaceId = state.modelRaces[0]?.race_id || null;
-  state.raceDetail = state.selectedRaceId ? await request(`/api/v1/model-races/${encodeURIComponent(state.selectedRaceId)}`) : null;
-  renderModelRace();
-  renderRacePerformance();
-}
-
-async function startModelRace(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const payload = {
-    name: form.elements.name.value || null,
-    starting_bankroll: Number(form.elements.starting_bankroll.value),
-    allocation_percent: Number(form.elements.allocation_percent.value),
-    maximum_trade_usd: optionalFormNumber(form, "maximum_trade_usd"),
-    minimum_edge_percent: Number(form.elements.minimum_edge_percent.value),
-    entry_cutoff_seconds: Number(form.elements.entry_cutoff_seconds.value),
-    thin_gap_allocation_percent: Number(form.elements.thin_gap_allocation_percent.value),
-    movement_disagreement_allocation_percent: Number(form.elements.movement_disagreement_allocation_percent.value),
-  };
-  $("startModelRaceButton").disabled = true;
-  try {
-    const race = await request("/api/v1/model-races", { method: "POST", body: JSON.stringify(payload) });
-    state.selectedRaceId = race.race_id;
-    $("modelRaceMessage").textContent = "All models started with equal money. Their balances now compound independently.";
-    await loadModelRaces();
-    toast("Model race started");
-  } catch (error) { $("modelRaceMessage").textContent = error.message; }
-  finally { if (state.raceDetail?.status !== "RUNNING") $("startModelRaceButton").disabled = false; }
-}
-
-async function stopModelRace() {
-  if (!state.selectedRaceId) return;
-  try {
-    await request(`/api/v1/model-races/${encodeURIComponent(state.selectedRaceId)}/stop`, { method: "POST" });
-    $("modelRaceMessage").textContent = "Stop requested. Open positions will still be resolved and recorded.";
-    await loadModelRaces();
-  } catch (error) { toast(error.message); }
-}
-
 async function refresh() {
   try {
     const [dashboard, chart, health, account] = await Promise.all([request("/api/v1/dashboard"), request("/api/v1/live/chart"), request("/health"), request("/api/v1/account")]);
@@ -1294,8 +1187,6 @@ async function refresh() {
     renderLive(); renderCharts(); renderStatistics(); renderSettings(); renderAccount();
     const followups = [loadPaperSessions()];
     if ($("historyView").classList.contains("active")) followups.push(loadRounds());
-    if ($("modelPerformanceView").classList.contains("active")
-        || $("modelRaceView").classList.contains("active")) followups.push(loadModelRaces());
     await Promise.all(followups);
   } catch (error) {
     setConnection("offline", "API unavailable");
@@ -1368,14 +1259,11 @@ function changeView(name) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(v => v.classList.toggle("active", v.dataset.view === name));
   $(`${name}View`).classList.add("active");
-  const titles = { dashboard: ["LIVE OPERATIONS", "Market overview"], history: ["PERFORMANCE", "Round history"], trades: ["BOT EXECUTION", "Trade ledger"], modelPerformance: ["MODEL LAB", "Forward model performance"], modelRace: ["MODEL LAB", "Equal-bankroll paper race"], settings: ["CONFIGURATION", "Strategy settings"] };
+  const titles = { dashboard: ["LIVE OPERATIONS", "Market overview"], history: ["PERFORMANCE", "Round history"], trades: ["BOT EXECUTION", "Trade ledger"], settings: ["CONFIGURATION", "Strategy settings"] };
   [$("viewEyebrow").textContent, $("viewTitle").textContent] = titles[name];
   history.replaceState(null, "", `#${name}`);
   if (name === "history") loadRounds().catch(error => toast(error.message));
   if (name === "trades") loadPaperSessions().catch(error => toast(error.message));
-  if (name === "modelPerformance" || name === "modelRace") {
-    loadModelRaces().catch(error => toast(error.message));
-  }
 }
 
 document.querySelectorAll(".nav-item").forEach(button => button.addEventListener("click", () => changeView(button.dataset.view)));
@@ -1395,14 +1283,7 @@ $("tradesPrevious").addEventListener("click", () => movePage("trades", -1, reloa
 $("tradesNext").addEventListener("click", () => movePage("trades", 1, reloadSelectedSession));
 $("eventsPrevious").addEventListener("click", () => movePage("events", -1, reloadSelectedSession));
 $("eventsNext").addEventListener("click", () => movePage("events", 1, reloadSelectedSession));
-$("racePrevious").addEventListener("click", () => { movePage("race", -1, async () => renderRacePerformance()); });
-$("raceNext").addEventListener("click", () => { movePage("race", 1, async () => renderRacePerformance()); });
 $("settingsForm").addEventListener("submit", saveSettings);
-$("modelRaceForm").addEventListener("submit", startModelRace);
-$("stopModelRaceButton").addEventListener("click", stopModelRace);
-$("openRacePerformanceButton").addEventListener("click", () => changeView("modelPerformance"));
-$("racePerformanceSelector").addEventListener("change", async event => { state.selectedRaceId = event.target.value; state.pages.race.offset = 0; await loadModelRaces(); });
-[$("raceModelFilter"), $("raceStateFilter"), $("raceOpportunityFilter")].forEach(input => input.addEventListener("change", () => { state.pages.race.offset = 0; renderRacePerformance(); }));
 $("autoTradingToggle").addEventListener("change", toggleAutomaticTrading);
 $("newSessionButton").addEventListener("click", openPaperSessionDialog);
 $("paperSessionForm").addEventListener("submit", startPaperSession);
@@ -1483,15 +1364,9 @@ setInterval(async () => {
       try { await loadPaperSessions(); } catch (_) {} finally { sessionPollInFlight = false; }
     }
   }
-  const raceViewActive = $("modelPerformanceView").classList.contains("active")
-    || $("modelRaceView").classList.contains("active");
-  if (raceViewActive && state.dashboard?.capabilities?.model_races && !racePollInFlight) {
-    racePollInFlight = true;
-    try { await loadModelRaces(); } catch (_) {} finally { racePollInFlight = false; }
-  }
 }, 5000);
 
 const initialView = location.hash.slice(1);
-if (["history", "trades", "modelPerformance", "modelRace", "settings"].includes(initialView)) changeView(initialView);
+if (["history", "trades", "settings"].includes(initialView)) changeView(initialView);
 refresh();
 connectSockets();

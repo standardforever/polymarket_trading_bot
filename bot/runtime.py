@@ -11,7 +11,6 @@ from .collector import CollectorConfig, run as run_collector
 from .live import LiveStore
 from .paper_sessions import PaperSessionManager
 from .account import PolymarketAccount
-from .model_race import ModelRaceManager
 
 
 def serve(data: Path, host: str, port: int, api_only: bool = False) -> None:
@@ -21,7 +20,6 @@ def serve(data: Path, host: str, port: int, api_only: bool = False) -> None:
     workers = []
     account = PolymarketAccount(data, live_store)
     paper_sessions = None if api_only else PaperSessionManager(data, account=account)
-    model_races = None if api_only else ModelRaceManager(data)
 
     if not api_only:
         collector = threading.Thread(
@@ -32,15 +30,12 @@ def serve(data: Path, host: str, port: int, api_only: bool = False) -> None:
 
     try:
         uvicorn.run(create_app(data, live_store, settings_store,
-                               paper_sessions=paper_sessions, account=account,
-                               model_races=model_races),
+                               paper_sessions=paper_sessions, account=account),
                     host=host, port=port, log_level="info")
     finally:
         stop.set()
         if paper_sessions is not None:
             paper_sessions.shutdown()
-        if model_races is not None:
-            model_races.shutdown()
         account.close()
         for worker in workers:
             worker.join(timeout=5)

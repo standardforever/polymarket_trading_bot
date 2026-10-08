@@ -98,7 +98,6 @@ bot/models.py           immutable probability-model release registry
 bot/trading.py          shared fee and order-book rules
 bot/paper.py            paper execution and bankroll calculations
 bot/paper_sessions.py   API-managed session lifecycle
-bot/model_race.py       isolated equal-bankroll forward model races
 bot/account.py          real-account reads and manual order execution
 bot/api/                FastAPI routes, settings, and history repository
 tests/                  maintained behavior tests
@@ -118,10 +117,6 @@ The prediction uses the official opening price and settlement estimate, recent B
 - `GET /api/v1/rounds/{slug}`
 - `GET /api/v1/trades`
 - `GET /api/v1/statistics`
-- `GET /api/v1/model-races`
-- `POST /api/v1/model-races`
-- `GET /api/v1/model-races/{race_id}`
-- `POST /api/v1/model-races/{race_id}/stop`
 - `GET /api/v1/paper/sessions`
 - `POST /api/v1/paper/sessions`
 - `GET /api/v1/paper/sessions/{session_id}`
@@ -160,12 +155,6 @@ when no session is active), while compact model cards and the expandable model
 analysis show every release. Round history retains the same shadow decisions so
 model results can be compared after settlement.
 
-The Model race tab starts every release at the same moment with the same paper
-bankroll. Each balance compounds independently. The Model performance tab keeps
-the detailed decision ledger and counts a missed opportunity only when another
-race model proves that the same side was fillable within that model's value
-limit.
-
 Start it in another terminal:
 
 ```bash
@@ -185,7 +174,6 @@ Live files remain under `data/` for compatibility with existing history:
 - `stage4-active/` — temporary evidence for unresolved rounds
 - `session-*.jsonl` — session events that are not assigned to a round
 - `paper-trading/` — separate paper-trading logs and status
-- `model-races/` — separate per-race and per-model forward-comparison logs
 - `real-trading/sessions/` — autonomous real-session logs and status
 - `real-trading/manual-orders.jsonl` — manual real-order audit trail; no secrets
 

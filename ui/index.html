@@ -20,8 +20,6 @@
         <button class="nav-item active" data-view="dashboard"><span>⌁</span>Overview</button>
         <button class="nav-item" data-view="history"><span>↺</span>Round history</button>
         <button class="nav-item" data-view="trades"><span>⇄</span>Bot trades</button>
-        <button class="nav-item" data-view="modelPerformance"><span>◎</span>Model performance</button>
-        <button class="nav-item" data-view="modelRace"><span>◫</span>Model race</button>
         <button class="nav-item" data-view="settings"><span>⚙</span>Strategy</button>
       </nav>
       <div class="sidebar-foot">
@@ -190,43 +188,6 @@
             </article>
           </div>
         </div>
-      </section>
-
-      <section class="view" id="modelPerformanceView">
-        <div class="race-heading card">
-          <div><span class="label">FORWARD MODEL COMPARISON</span><h2>Equal-start performance</h2><p>Only activity recorded after a race starts is included. Missed opportunities require evidence that another model filled the same side at an acceptable price.</p></div>
-          <label><span>Comparison session</span><select id="racePerformanceSelector"></select></label>
-        </div>
-        <div class="race-model-grid" id="racePerformanceCards"><div class="empty-state">Start a model race to begin the forward comparison.</div></div>
-        <article class="card table-card race-detail-card">
-          <div class="table-tools"><div><span class="label">COMPLETE DECISION LEDGER</span><h2>Trades, skips and fillable opportunities</h2></div><div class="filters"><select id="raceModelFilter"><option value="">All models</option></select><select id="raceStateFilter"><option value="">All decisions</option><option>WIN</option><option>LOSS</option><option>OPEN</option><option>NO_FILL</option><option>SKIP</option></select><select id="raceOpportunityFilter"><option value="">All opportunities</option><option value="MISSED_WIN">Missed wins</option><option value="AVOIDED_LOSS">Avoided losses</option></select></div></div>
-          <div class="table-scroll"><table><thead><tr><th>Round</th><th>Model forecast</th><th>Decision</th><th>Warnings</th><th>Gap</th><th>Actual</th><th>Execution</th><th>Profit</th></tr></thead><tbody id="racePerformanceBody"></tbody></table></div>
-          <div class="empty-state hidden" id="racePerformanceEmpty">No records match these filters.</div>
-          <div class="pagination" id="racePagination"><button class="secondary-button" id="racePrevious">Previous</button><span id="racePageInfo">Page 1</span><button class="secondary-button" id="raceNext">Next</button></div>
-        </article>
-      </section>
-
-      <section class="view" id="modelRaceView">
-        <div class="race-control-layout">
-          <article class="card race-launch-card">
-            <div class="card-head"><div><span class="label">ISOLATED PAPER LAB</span><h2>Start all models together</h2><p>Each model receives the same starting bankroll, then compounds independently using its own confidence and risk rules.</p></div><span class="pill muted" id="modelRaceStatus">READY</span></div>
-            <form id="modelRaceForm" class="session-form">
-              <label class="full"><span>Race name</span><input name="name" maxlength="60" placeholder="Model comparison"></label>
-              <label><span>Money for each model</span><div class="input-unit"><i>$</i><input name="starting_bankroll" type="number" min="1" step="0.01" value="100" required></div></label>
-              <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" value="20" required><i>%</i></div></label>
-              <label><span>Maximum per trade <small>Optional cap for every model</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>
-              <label><span>Minimum profit edge</span><div class="input-unit suffix"><input name="minimum_edge_percent" type="number" min="0" max="99" step="0.1" value="3" required><i>%</i></div></label>
-              <label><span>Stop new entries at</span><div class="input-unit suffix"><input name="entry_cutoff_seconds" type="number" min="5" max="109" step="1" value="30" required><i>sec</i></div></label>
-              <label><span>Thin-gap size</span><div class="input-unit suffix"><input name="thin_gap_allocation_percent" type="number" min="0" max="100" step="1" value="25" required><i>%</i></div></label>
-              <label><span>Movement-warning size</span><div class="input-unit suffix"><input name="movement_disagreement_allocation_percent" type="number" min="0" max="100" step="1" value="50" required><i>%</i></div></label>
-              <div class="race-form-actions full"><button class="primary-button" id="startModelRaceButton" type="submit">Start equal-bankroll race</button><button class="secondary-button hidden" id="stopModelRaceButton" type="button">Stop race</button></div>
-              <p class="form-message full" id="modelRaceMessage">This creates separate logs and never changes your normal paper or real trading session.</p>
-            </form>
-          </article>
-          <article class="card race-rules-card"><span class="label">MODEL DEFAULTS</span><h2>Rules used in this race</h2><div id="raceModelRules"></div></article>
-        </div>
-        <div class="race-model-grid" id="raceLiveCards"><div class="empty-state">No model race is selected.</div></div>
-        <article class="card table-card"><div class="table-tools"><div><span class="label">LIVE RACE ACTIVITY</span><h2>Latest model actions</h2></div><button class="secondary-button" id="openRacePerformanceButton">Open full performance</button></div><div class="table-scroll"><table><thead><tr><th>Round</th><th>Model</th><th>Forecast</th><th>State</th><th>Entry</th><th>Cost</th><th>Profit</th></tr></thead><tbody id="raceLiveBody"></tbody></table></div></article>
       </section>
 
       <section class="view" id="settingsView">
