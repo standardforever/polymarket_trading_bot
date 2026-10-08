@@ -7,8 +7,8 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .models import (DEFAULT_MODEL, model_release, probability_from_decision,
-                     validate_model_version)
+from .strategy import (MAXIMUM_ADVERSE_PRICE_MOVE, RISK_RULE,
+                       probability_from_decision)
 
 
 def allocation(bankroll):
@@ -131,7 +131,6 @@ class PaperTrader:
                  target_profit_usd=None, max_loss_usd=None, run_id=None,
                  session_name=None, thin_gap_allocation_fraction=.25,
                  movement_disagreement_allocation_fraction=.5,
-                 model_version=DEFAULT_MODEL,
                  execution_mode="paper", folder_name="paper-trading",
                  file_prefix="paper", resume=False):
         self.data = Path(data)
@@ -140,7 +139,6 @@ class PaperTrader:
         self.stop_entry_at_remaining_ms = int(stop_entry_at_remaining * 1000)
         self.poll = float(poll)
         self.model_threshold = float(model_threshold)
-        self.model_version = validate_model_version(model_version)
         self.allocation_fraction = allocation_fraction
         self.maximum_trade_usd = maximum_trade_usd
         self.max_trades = max_trades
@@ -180,7 +178,6 @@ class PaperTrader:
                 if event.get("event") == "trade_filled":
                     self.positions[slug] = {
                         "slug": slug, "side": event.get("side"),
-                        "model_version": event.get("model_version", self.model_version),
                         "fill": {"price": float(event.get("price") or 0),
                                  "shares": float(event.get("shares") or 0),
                                  "fee": float(event.get("fee") or 0),
@@ -207,7 +204,6 @@ class PaperTrader:
                    resumed_bankroll=self.bankroll if resume else None,
                    minimum_edge=self.minimum_edge,
                    model_threshold=self.model_threshold,
-                   model_version=self.model_version,
                    stop_entry_at_remaining_seconds=self.stop_entry_at_remaining_ms / 1000,
                    allocation_fraction=self.allocation_fraction,
                    maximum_trade_usd=self.maximum_trade_usd,
@@ -217,8 +213,8 @@ class PaperTrader:
                    thin_gap_allocation_fraction=self.thin_gap_allocation_fraction,
                    movement_disagreement_allocation_fraction=(
                        self.movement_disagreement_allocation_fraction),
-                   model_risk_rule=model_release(self.model_version)["risk_rule"],
-                   model_risk_action="skip",
+                   risk_rule=RISK_RULE,
+                   risk_action="skip",
                    session_name=self.session_name,
                    execution_mode=self.execution_mode,
                    paper_only=self.execution_mode == "paper")
@@ -244,7 +240,6 @@ class PaperTrader:
             "updated_ms": time.time_ns() // 1_000_000,
             "run_id": self.run_id,
             "execution_mode": self.execution_mode,
-            "model_version": self.model_version,
             "status": status,
             "starting_bankroll": round(self.starting_bankroll, 6),
             "available_bankroll": round(self.bankroll, 6),
@@ -357,9 +352,8 @@ class PaperTrader:
         slug = row.get("slug")
         if slug in self.handled or slug in self.candidates or slug in self.positions:
             return
-        selected_output = (row.get("model_outputs") or {}).get(self.model_version)
         try:
-            probability = selected_output or probability_from_decision(row, self.model_version)
+            probability = probability_from_decision(row)
             p_up = float(probability["p_up"])
             p_down = float(probability["p_down"])
         except (TypeError, ValueError):
@@ -370,15 +364,12 @@ class PaperTrader:
         side, chance = ("Up", p_up) if p_up >= p_down else ("Down", p_down)
         if chance + 1e-12 < self.model_threshold:
             self.write("signal_rejected", slug=slug, side=side,
-                       model_version=self.model_version,
                        model_probability=chance,
                        reason="confidence_below_threshold",
                        threshold=self.model_threshold, bankroll=self.bankroll)
             return
-        agreement = ((selected_output or {}).get("agreement")
-                     or row.get("agreement") or {})
-        warnings = set((selected_output or {}).get("warnings")
-                       or row.get("warnings") or [])
+        agreement = row.get("agreement") or {}
+        warnings = set(row.get("warnings") or [])
         settlement = (row.get("components") or {}).get("settlement") or {}
         spot_gap = settlement.get("spot_gap_bps")
         thin_gap = ("thin_gap" in warnings or
@@ -388,28 +379,24 @@ class PaperTrader:
                                  (movement_side is not None and
                                   movement_side != side))
         combined_risk = thin_gap and movement_disagreement
-        model_risk_blocked = bool((selected_output or {}).get(
-            "model_risk_blocked", combined_risk))
-        if selected_output and agreement.get("market") != side:
+        regime_risk = thin_gap and ((row.get("components") or {}).get(
+            "movement") or {}).get("regime") == "choppy_up"
+        risk_blocked = bool(row.get("risk_blocked", combined_risk or regime_risk))
+        market_side = agreement.get("market")
+        if market_side is not None and market_side != side:
             self.handled.add(slug)
             self.write("signal_rejected", slug=slug, side=side,
-                       model_version=self.model_version,
                        model_probability=chance,
-                       reason="model_market_disagreement",
-                       market_direction=agreement.get("market"), warnings=sorted(warnings),
+                       reason="market_disagreement",
+                       market_direction=market_side, warnings=sorted(warnings),
                        bankroll=self.bankroll)
             return
-        if model_risk_blocked:
+        if risk_blocked:
             self.handled.add(slug)
-            risk_reason = ((selected_output or {}).get("reason")
-                           or "combined_risk")
+            risk_reason = row.get("reason") or "combined_risk"
             self.write("signal_rejected", slug=slug, side=side,
-                       model_version=self.model_version,
                        model_probability=chance,
-                       reason=("dual_risk" if risk_reason == "analytic_v4_dual_risk" else
-                               "regime_risk" if risk_reason == "analytic_regime_risk"
-                               else "combined_risk"),
-                       model_signal_reason=risk_reason,
+                       reason="combined_risk", signal_reason=risk_reason,
                        thin_gap=thin_gap,
                        movement_disagreement=movement_disagreement,
                        warnings=sorted(warnings),
@@ -436,10 +423,8 @@ class PaperTrader:
         candidate = {
             "slug": slug, "start": int(row["start"]), "side": side,
             "chance": float(chance), "fee_rate": float(fee_rate),
-            "model_version": self.model_version,
-            "main_bot_direction": row.get("direction"),
-            "model_signal_direction": (selected_output or {}).get("direction"),
-            "model_signal_reason": (selected_output or {}).get("reason"),
+            "signal_direction": row.get("direction"),
+            "signal_reason": row.get("reason"),
             "decision_ms": decision_ms,
             "entry_start_ms": decision_ms,
             "market_end_ms": market_end_ms,
@@ -452,8 +437,7 @@ class PaperTrader:
             "regime": ((row.get("components") or {}).get("movement") or {}).get("regime"),
             "spot_gap_bps": settlement.get("spot_gap_bps"),
             "twap_gap_bps": settlement.get("twap_gap_bps"),
-            "maximum_adverse_price_move": model_release(self.model_version).get(
-                "maximum_adverse_price_move"),
+            "maximum_adverse_price_move": MAXIMUM_ADVERSE_PRICE_MOVE,
             "risk_allocation_multiplier": risk_multiplier,
             "rejections": Counter(), "best_ask": None,
         }
@@ -463,12 +447,11 @@ class PaperTrader:
                    bankroll=self.bankroll,
                    planned_allocation=self._trade_budget(risk_multiplier))
         self.write_status("MONITORING_ENTRY", slug=slug, side=side,
-                          model_version=self.model_version,
                           model_probability=round(chance, 6),
                           stop_entry_at_remaining_seconds=self.stop_entry_at_remaining_ms / 1000,
                           maximum_value_price=round(candidate["maximum_value_price"], 6))
         remaining = self.stop_entry_at_remaining_ms / 1000
-        print(f"Model candidate {slug}: {side} {chance:.1%}; monitoring now until {remaining:g}s "
+        print(f"Signal candidate {slug}: {side} {chance:.1%}; monitoring now until {remaining:g}s "
               f"remaining, up to ${candidate['maximum_value_price']:.3f}", flush=True)
 
     def consider_quotes(self, candidate, record):
@@ -516,7 +499,6 @@ class PaperTrader:
         self._close_round_tail(candidate["start"])
         self.trade_count += 1
         self.write("trade_filled", slug=slug, side=candidate["side"],
-                   model_version=self.model_version,
                    forecast_probability=candidate["chance"],
                    maximum_value_price=candidate["maximum_value_price"],
                    entry_ms=observed_ms,
@@ -578,7 +560,6 @@ class PaperTrader:
         self.losses += int(not result["won"])
         self.handled.add(slug)
         self.write("trade_resolved", slug=slug, predicted=position["side"], actual=actual,
-                   model_version=position.get("model_version", self.model_version),
                    won=result["won"], entry_price=position["fill"]["price"],
                    shares=position["fill"]["shares"], fee=position["fill"]["fee"],
                    trade_cost=position["fill"]["cost"], payout=result["payout"],

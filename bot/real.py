@@ -174,7 +174,6 @@ class RealTrader(PaperTrader):
         self.positions[slug] = position
         self.trade_count += 1
         self.write("trade_filled", slug=slug, side=candidate["side"],
-                   model_version=self.model_version,
                    forecast_probability=candidate["chance"],
                    maximum_value_price=candidate["maximum_value_price"],
                    entry_ms=observed_ms,

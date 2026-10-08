@@ -4,9 +4,7 @@ import math
 from collections import deque
 from statistics import NormalDist
 
-from .models import (COMBINED_MODEL, CORRECTED_MODEL, DEFAULT_MODEL,
-                     REGIME_MODEL, model_release,
-                     model_releases, probability_releases, probability_snapshot)
+from .strategy import RECOMMENDED_CONFIDENCE, probability_snapshot
 from .trading import (MINIMUM_EDGE, MINIMUM_SHARES, healthy_book,
                       market_fee_rate, points_before, prior, valid_book)
 
@@ -64,8 +62,7 @@ def _vote(values, deadband=1e-12):
     return (1 if total > 0 else -1 if total < 0 else 0), votes
 
 
-def analytic_signal(component_rows, quotes, taker_fee_rate,
-                    model_version=DEFAULT_MODEL):
+def analytic_signal(component_rows, quotes, taker_fee_rate):
     """Conservative no-training paper signal based on component agreement.
 
     Its normal-distribution probability is an engineering approximation, not a
@@ -76,7 +73,7 @@ def analytic_signal(component_rows, quotes, taker_fee_rate,
     if missing:
         return {"direction": "SKIP", "reason": "analytic_missing_components:" + ",".join(missing),
                 "p_up": None, "calibrated": False, "method": "analytic_consensus",
-                "model_version": model_version, "warnings": []}
+                "warnings": []}
 
     settlement = component_rows["settlement"]
     movement = component_rows["movement"]
@@ -84,7 +81,7 @@ def analytic_signal(component_rows, quotes, taker_fee_rate,
     order_flow = component_rows.get("order_flow")
     if (movement.get("volatility_120", 0) > 0
             and settlement.get("remaining_seconds", 0) >= 60):
-        probability = probability_snapshot(component_rows, model_version)
+        probability = probability_snapshot(component_rows)
         p_up = probability["p_up"]
         z_score = probability["z_score"]
         probability_before_cap = probability["probability_before_cap"]
@@ -97,7 +94,7 @@ def analytic_signal(component_rows, quotes, taker_fee_rate,
     side_sign = 1 if p_up >= .5 else -1
     side = "Up" if side_sign > 0 else "Down"
     chance = p_up if side == "Up" else 1 - p_up
-    minimum_probability = float(model_release(model_version)["recommended_confidence"])
+    minimum_probability = RECOMMENDED_CONFIDENCE
 
     momentum_sign, momentum_votes = _vote([
         movement["momentum_10"], movement["momentum_30"],
@@ -119,7 +116,6 @@ def analytic_signal(component_rows, quotes, taker_fee_rate,
     result = {"direction": "SKIP", "reason": None, "side": side,
               "chance": chance, "p_up": p_up, "p_down": 1 - p_up,
               "calibrated": False, "method": "analytic_final_twap_core_consensus",
-              "model_version": model_version,
               "minimum_probability": minimum_probability,
               "z_score": z_score, "agreement": agreement,
               "warnings": [],
@@ -138,47 +134,33 @@ def analytic_signal(component_rows, quotes, taker_fee_rate,
         result["estimated_edge"] = chance - ask - taker_fee_rate * ask * (1 - ask)
 
     if chance < minimum_probability:
-        result["reason"] = ("analytic_probability_below_87_5pct"
-                            if model_version == REGIME_MODEL
-                            else "analytic_probability_below_90pct")
+        result["reason"] = "analytic_probability_below_90pct"
         return result
     movement_disagreement = momentum_sign != side_sign
     spot_gap_bps = abs(float(settlement["spot_gap_bps"]))
     twap_gap_value = settlement.get("twap_gap_bps")
     twap_gap_bps = (abs(float(twap_gap_value))
                     if twap_gap_value is not None else spot_gap_bps)
-    thin_gap_distance = (min(spot_gap_bps, twap_gap_bps)
-                         if model_version == COMBINED_MODEL else spot_gap_bps)
+    thin_gap_distance = min(spot_gap_bps, twap_gap_bps)
     thin_gap = thin_gap_distance < THIN_GAP_BPS
     combined_risk = thin_gap and movement_disagreement
-    regime_risk = (model_version == REGIME_MODEL and thin_gap
-                   and movement.get("regime") == "choppy_up")
-    dual_risk = (model_version == COMBINED_MODEL and thin_gap
-                 and (movement_disagreement or movement.get("regime") == "choppy_up"))
-    model_risk_blocked = (dual_risk if model_version == COMBINED_MODEL else
-                          regime_risk if model_version == REGIME_MODEL else combined_risk)
+    regime_risk = thin_gap and movement.get("regime") == "choppy_up"
+    risk_blocked = combined_risk or regime_risk
     result.update(thin_gap=thin_gap, thin_gap_threshold_bps=THIN_GAP_BPS,
                   thin_gap_distance_bps=thin_gap_distance,
-                  thin_gap_source=("spot_or_twap" if model_version == COMBINED_MODEL
-                                   else "spot"),
+                  thin_gap_source="spot_or_twap",
                   movement_disagreement=movement_disagreement,
                   combined_risk=combined_risk, regime_risk=regime_risk,
-                  dual_risk=dual_risk,
-                  model_risk_blocked=model_risk_blocked,
-                  risk_rule=("thin_gap_and_movement_or_choppy_up"
-                             if model_version == COMBINED_MODEL else
-                             "thin_gap_and_choppy_up" if model_version == REGIME_MODEL
-                             else "thin_gap_and_movement_disagreement"))
+                  risk_blocked=risk_blocked,
+                  risk_rule="thin_gap_and_movement_or_choppy_up")
     if movement_disagreement:
         result["warnings"].append("movement_disagreement")
     if thin_gap:
         result["warnings"].append("thin_gap")
     if movement.get("regime") == "choppy_up":
         result["warnings"].append("choppy_up_regime")
-    if model_risk_blocked:
-        result["reason"] = ("analytic_v4_dual_risk" if dual_risk else
-                            "analytic_regime_risk" if regime_risk
-                            else "analytic_combined_risk")
+    if risk_blocked:
+        result["reason"] = "analytic_combined_risk"
         return result
     if market_sign != side_sign:
         result["reason"] = "analytic_disagreement:market"
@@ -193,15 +175,6 @@ def analytic_signal(component_rows, quotes, taker_fee_rate,
         return result
     result.update(direction=side, reason="analytic_unvalidated_signal")
     return result
-
-
-def analytic_releases(component_rows, quotes, taker_fee_rate):
-    """Run the complete immutable signal decision for every model release."""
-    return {
-        release["id"]: analytic_signal(
-            component_rows, quotes, taker_fee_rate, release["id"])
-        for release in model_releases()
-    }
 
 
 def _volatility(points, now_ms, seconds):
@@ -544,9 +517,6 @@ class PredictionEngine:
             slug=row["slug"], decision_ms=row["decision_ms"],
             remaining_seconds=row["remaining"], direction=direction,
             reason=row.get("reason"), signal_method=row.get("signal_method"),
-            model_version=row.get("model_version"),
-            model_probabilities=row.get("model_probabilities"),
-            model_outputs=row.get("model_outputs"),
             probability_calibrated=row.get("probability_calibrated"),
             p_up=p_up, p_down=(1 - p_up) if p_up is not None else None,
             estimated_edge=row.get("estimated_edge"), agreement=row.get("agreement"),
@@ -571,9 +541,6 @@ class PredictionEngine:
             "decision", row["slug"], start=row["start"], decision_ms=row["decision_ms"],
             remaining_seconds=row["remaining"], direction=row.get("direction"),
             reason=row.get("reason"), signal_method=row.get("signal_method"),
-            model_version=row.get("model_version"),
-            model_probabilities=row.get("model_probabilities"),
-            model_outputs=row.get("model_outputs"),
             probability_calibrated=row.get("probability_calibrated"),
             p_up=p_up, p_down=(1 - p_up) if p_up is not None else None,
             estimated_edge=row.get("estimated_edge"), agreement=row.get("agreement"),
@@ -637,16 +604,10 @@ class PredictionEngine:
                     row["reason"] = "no_components_available"
                 if row["reason"] is None:
                     try:
-                        row["model_outputs"] = analytic_releases(
+                        analytic = analytic_signal(
                             row["components"], quotes, row["fee_rate"])
-                        if all(name in row["components"]
-                               for name in ("settlement", "movement")):
-                            row["model_probabilities"] = probability_releases(
-                                row["components"])
-                        analytic = row["model_outputs"][CORRECTED_MODEL]
                         row.update(direction=analytic["direction"], reason=analytic["reason"],
                                    p_up=analytic["p_up"], signal_method=analytic["method"],
-                                   model_version=analytic["model_version"],
                                    probability_calibrated=False,
                                    warnings=analytic.get("warnings", []))
                         for key in ("z_score", "agreement", "estimated_edge",
@@ -654,7 +615,8 @@ class PredictionEngine:
                                     "distance_source", "probability_before_cap",
                                     "probability_cap", "thin_gap",
                                     "thin_gap_threshold_bps",
-                                    "movement_disagreement", "combined_risk"):
+                                    "movement_disagreement", "combined_risk",
+                                    "regime_risk", "risk_blocked", "risk_rule"):
                             if key in analytic:
                                 row[key] = analytic[key]
                     except (ValueError, KeyError, TypeError) as error:

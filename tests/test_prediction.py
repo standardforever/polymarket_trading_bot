@@ -1,9 +1,8 @@
 import math
 import unittest
 
-from bot.models import COMBINED_MODEL, CORRECTED_MODEL, REGIME_MODEL
 from bot.prediction import (ALL_COMPONENTS, COMPONENT_FEATURES, MicrostructureState,
-                            PredictionEngine, analytic_releases, analytic_signal, build_components,
+                            PredictionEngine, analytic_signal, build_components,
                             market_book_view, movement_stability)
 from tests.helpers import NOW, MemoryRecorder, fixture
 
@@ -79,7 +78,7 @@ class PredictionTests(unittest.TestCase):
         self.assertAlmostEqual(view["p_up"], .995)
         components = component_row()
         components["settlement"]["gap_over_expected_move"] = 4
-        components["settlement"]["spot_gap_bps"] = 6
+        components["settlement"].update(spot_gap_bps=6, twap_gap_bps=6)
         components["movement"].update(momentum_10=1, momentum_30=1,
                                        momentum_60=1, twap_slope_30=1)
         components["market"].update(view)
@@ -133,12 +132,9 @@ class PredictionTests(unittest.TestCase):
         self.assertEqual(decision["direction"], "Up")
         self.assertEqual(decision["reason"], "analytic_unvalidated_signal")
         self.assertFalse(decision["probability_calibrated"])
-        self.assertEqual(set(decision["model_outputs"]),
-                         {"btc_twap_v2", "btc_regime_v3", "btc_guard_v4"})
-        self.assertEqual(decision["model_outputs"]["btc_twap_v2"]["direction"],
-                         decision["direction"])
+        self.assertNotIn("model_outputs", decision)
 
-    def test_each_model_release_runs_a_complete_decision(self):
+    def test_probability_floor_can_keep_a_close_round_below_threshold(self):
         _, _, _, quotes = fixture()
         components = component_row()
         components["settlement"].update(spot_gap_bps=1.19,
@@ -147,13 +143,9 @@ class PredictionTests(unittest.TestCase):
         components["movement"].update(momentum_10=1, momentum_30=1,
                                       momentum_60=1, twap_slope_30=1)
         components["market"]["p_up"] = .9
-        outputs = analytic_releases(components, quotes, .07)
-        self.assertLess(outputs["btc_twap_v2"]["chance"], .9)
-        self.assertEqual(outputs["btc_twap_v2"]["direction"], "SKIP")
-        self.assertEqual(outputs["btc_regime_v3"]["chance"],
-                         outputs["btc_twap_v2"]["chance"])
-        self.assertEqual(outputs["btc_guard_v4"]["chance"],
-                         outputs["btc_twap_v2"]["chance"])
+        result = analytic_signal(components, quotes, .07)
+        self.assertLess(result["chance"], .9)
+        self.assertEqual(result["direction"], "SKIP")
 
     def test_live_engine_waits_for_complete_snapshot_inside_fixed_window(self):
         market, context, history, quotes = fixture()
@@ -182,8 +174,7 @@ class PredictionTests(unittest.TestCase):
         decision = engine.decisions[market["slug"]]
         self.assertEqual(decision["decision_ms"], NOW + 10_000)
         self.assertIn("market", decision["component_errors"])
-        self.assertEqual(decision["model_outputs"]["btc_twap_v2"]["direction"],
-                         "SKIP")
+        self.assertEqual(decision["direction"], "SKIP")
 
     def test_missing_settlement_snapshot_has_clean_model_reasons(self):
         market, context, history, quotes = fixture()
@@ -197,8 +188,7 @@ class PredictionTests(unittest.TestCase):
         decision = engine.decisions[market["slug"]]
         self.assertTrue(decision["reason"].startswith(
             "analytic_missing_components:settlement"))
-        self.assertEqual(set(decision["model_outputs"]),
-                         {"btc_twap_v2", "btc_regime_v3", "btc_guard_v4"})
+        self.assertNotIn("model_outputs", decision)
 
     def test_analytic_signal_treats_movement_disagreement_as_warning(self):
         _, _, _, quotes = fixture()
@@ -207,7 +197,7 @@ class PredictionTests(unittest.TestCase):
         self.assertIn("analytic_missing_components", missing["reason"])
         components = component_row()
         components["settlement"]["gap_over_expected_move"] = 4
-        components["settlement"]["spot_gap_bps"] = 6
+        components["settlement"].update(spot_gap_bps=6, twap_gap_bps=6)
         components["movement"].update(momentum_10=-1, momentum_30=-1,
                                       momentum_60=-1, twap_slope_30=-1)
         components["market"]["p_up"] = .9
@@ -242,47 +232,7 @@ class PredictionTests(unittest.TestCase):
         self.assertEqual(set(result["warnings"]),
                          {"thin_gap", "movement_disagreement"})
 
-    def test_v3_blocks_thin_choppy_up_instead_of_every_movement_disagreement(self):
-        _, _, _, quotes = fixture()
-        components = component_row()
-        components["settlement"].update(gap_over_expected_move=4,
-                                         spot_gap_bps=2)
-        components["movement"].update(momentum_10=1, momentum_30=1,
-                                      momentum_60=1, twap_slope_30=1,
-                                      regime="choppy_up")
-        components["market"]["p_up"] = .9
-        v2 = analytic_signal(components, quotes, .07, CORRECTED_MODEL)
-        v3 = analytic_signal(components, quotes, .07, REGIME_MODEL)
-        self.assertEqual(v2["direction"], "Up")
-        self.assertEqual(v3["direction"], "SKIP")
-        self.assertEqual(v3["reason"], "analytic_regime_risk")
-        self.assertTrue(v3["model_risk_blocked"])
-
-        components["movement"].update(momentum_10=-1, momentum_30=-1,
-                                      momentum_60=-1, twap_slope_30=-1,
-                                      regime="mixed_down")
-        v2 = analytic_signal(components, quotes, .07, CORRECTED_MODEL)
-        v3 = analytic_signal(components, quotes, .07, REGIME_MODEL)
-        self.assertEqual(v2["reason"], "analytic_combined_risk")
-        self.assertEqual(v3["direction"], "Up")
-        self.assertFalse(v3["model_risk_blocked"])
-
-    def test_v3_release_uses_its_875_recommended_threshold(self):
-        _, _, _, quotes = fixture()
-        components = component_row()
-        components["settlement"].update(gap_over_expected_move=1.16,
-                                         spot_gap_bps=6)
-        components["movement"].update(momentum_10=1, momentum_30=1,
-                                      momentum_60=1, twap_slope_30=1,
-                                      regime="mixed_up")
-        components["market"]["p_up"] = .9
-        v2 = analytic_signal(components, quotes, .07, CORRECTED_MODEL)
-        v3 = analytic_signal(components, quotes, .07, REGIME_MODEL)
-        self.assertEqual(v2["reason"], "analytic_probability_below_90pct")
-        self.assertEqual(v3["direction"], "Up")
-        self.assertEqual(v3["minimum_probability"], .875)
-
-    def test_v4_combines_risk_guards_and_uses_spot_or_twap_gap(self):
+    def test_strategy_combines_risk_guards_and_uses_spot_or_twap_gap(self):
         _, _, _, quotes = fixture()
         components = component_row()
         components["settlement"].update(gap_over_expected_move=4,
@@ -291,9 +241,9 @@ class PredictionTests(unittest.TestCase):
                                       momentum_60=-1, twap_slope_30=-1,
                                       regime="mixed_down")
         components["market"]["p_up"] = .9
-        result = analytic_signal(components, quotes, .07, COMBINED_MODEL)
+        result = analytic_signal(components, quotes, .07)
         self.assertEqual(result["direction"], "SKIP")
-        self.assertEqual(result["reason"], "analytic_v4_dual_risk")
+        self.assertEqual(result["reason"], "analytic_combined_risk")
         self.assertTrue(result["thin_gap"])
         self.assertEqual(result["thin_gap_source"], "spot_or_twap")
         self.assertAlmostEqual(result["thin_gap_distance_bps"], 4.6)

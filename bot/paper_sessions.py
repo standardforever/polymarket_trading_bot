@@ -220,7 +220,6 @@ class PaperSessionManager:
                 trader_args = (self.data, self.account, config["starting_bankroll"])
             trader = trader_class(
                 *trader_args,
-                model_version=config["model_version"],
                 minimum_edge=config["minimum_edge"],
                 stop_entry_at_remaining=config["entry_cutoff_seconds"],
                 model_threshold=config["model_threshold"],

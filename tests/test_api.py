@@ -51,6 +51,9 @@ class ApiTests(unittest.TestCase):
     def test_dashboard_round_filters_and_trade_statistics(self):
         dashboard = self.client.get("/api/v1/dashboard")
         self.assertEqual(dashboard.status_code, 200)
+        self.assertNotIn("models", dashboard.json())
+        self.assertNotIn("default_model", dashboard.json())
+        self.assertEqual(self.client.get("/api/v1/models").status_code, 404)
         self.assertEqual(dashboard.json()["statistics"]["realized_profit"], 1.9)
         wins = self.client.get("/api/v1/rounds", params={"result": "WIN"}).json()
         self.assertEqual(wins["total"], 1)
@@ -114,8 +117,7 @@ class ApiTests(unittest.TestCase):
             (paper / f"paper-{session_id}-session.json").write_text(json.dumps({
                 "session_id": session_id, "created_ms": 1000 + index,
                 "name": f"Session {index}", "mode": "paper", "paper_only": True,
-                "configuration": {"starting_bankroll": 10,
-                                  "model_version": "btc_twap_v2"},
+                "configuration": {"starting_bankroll": 10},
             }))
             (paper / f"paper-{session_id}-status.json").write_text(json.dumps({
                 "status": "STOPPED", "available_bankroll": 10,
@@ -156,7 +158,6 @@ class ApiTests(unittest.TestCase):
         session_id = session["session_id"]
         self.assertEqual(session["configuration"]["planned_first_trade_budget"], 20)
         self.assertEqual(session["configuration"]["allocation_fraction"], .6)
-        self.assertEqual(session["configuration"]["model_version"], "btc_twap_v2")
         self.assertEqual(session["configuration"]["thin_gap_allocation_fraction"], .25)
         self.assertEqual(session["configuration"]["movement_disagreement_allocation_fraction"], .5)
         self.assertTrue(client.get("/api/v1/dashboard").json()
@@ -191,24 +192,6 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(duplicate.status_code, 409)
         stopped = client.post(f"/api/v1/paper/sessions/{session_id}/stop")
         self.assertEqual(stopped.status_code, 200)
-        manager.shutdown()
-
-    def test_probability_model_releases_are_exposed_and_validated(self):
-        manager = PaperSessionManager(self.data)
-        client = TestClient(create_app(self.data, paper_sessions=manager))
-        models = client.get("/api/v1/models").json()
-        self.assertEqual(models["default"], "btc_twap_v2")
-        self.assertEqual([row["id"] for row in models["items"]],
-                         ["btc_twap_v2", "btc_regime_v3", "btc_guard_v4"])
-        regime = next(row for row in models["items"]
-                      if row["id"] == "btc_regime_v3")
-        self.assertTrue(regime["experimental"])
-        self.assertEqual(regime["recommended_confidence"], .875)
-        invalid = client.post("/api/v1/trading/sessions", json={
-            "mode": "paper", "starting_bankroll": 50,
-            "model_version": "missing-model",
-        })
-        self.assertEqual(invalid.status_code, 422)
         manager.shutdown()
 
     def test_terminal_paper_session_cannot_be_edited(self):

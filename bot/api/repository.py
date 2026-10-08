@@ -1,9 +1,45 @@
-"""Read models over the collector and paper-trader append-only files."""
+"""Read API views over the collector and trading append-only files."""
 
 import json
 import time
 from collections import deque
 from pathlib import Path
+
+from bot.prediction import analytic_signal
+
+
+_LEGACY_DECISION_FIELDS = ("model_version", "model_outputs", "model_probabilities")
+
+
+def _single_decision(row):
+    """Expose one decision and translate old multi-output records on read."""
+    if not row:
+        return row
+    decision = dict(row)
+    is_legacy = any(key in decision for key in _LEGACY_DECISION_FIELDS)
+    for key in _LEGACY_DECISION_FIELDS:
+        decision.pop(key, None)
+    if is_legacy:
+        try:
+            result = analytic_signal(
+                decision.get("components") or {},
+                decision.get("quotes") or {},
+                float(decision.get("fee_rate") or 0),
+            )
+        except (TypeError, ValueError, KeyError):
+            result = None
+        if result:
+            decision.update(result)
+    return decision
+
+
+def _clean_event(row):
+    if not isinstance(row, dict):
+        return row
+    cleaned = dict(row)
+    for key in _LEGACY_DECISION_FIELDS:
+        cleaned.pop(key, None)
+    return cleaned
 
 
 def _json(path: Path):
@@ -35,10 +71,10 @@ class BotRepository:
         self.real_folder = data / "real-trading" / "sessions"
 
     def prediction_status(self):
-        return _json(self.data / "stage4-live-status.json")
+        return _single_decision(_json(self.data / "stage4-live-status.json"))
 
     def paper_status(self):
-        return _json(self.paper_folder / "latest-status.json")
+        return _clean_event(_json(self.paper_folder / "latest-status.json"))
 
     def trading_status(self):
         paper = self.paper_status()
@@ -143,7 +179,6 @@ class BotRepository:
             rows.append({
                 "run_id": item["run_id"], "slug": item["slug"], "status": status,
                 "mode": item.get("mode", "paper"),
-                "model_version": fill.get("model_version"),
                 "side": fill.get("side"), "forecast_probability": fill.get("forecast_probability"),
                 "entry_ms": fill.get("entry_ms"), "entry_price": fill.get("price"),
                 "shares": fill.get("shares"), "fee": fill.get("fee"),
@@ -181,7 +216,6 @@ class BotRepository:
                     "legacy": True,
                     "configuration": {
                         "starting_bankroll": starting,
-                        "model_version": first.get("model_version"),
                         "allocation_fraction": .8,
                         "maximum_trade_usd": None,
                         "model_threshold": first.get("model_threshold", .9),
@@ -195,8 +229,12 @@ class BotRepository:
                     },
                 }
         for metadata in metadata_by_id.values():
+            metadata = dict(metadata)
+            metadata["configuration"] = dict(metadata.get("configuration") or {})
+            metadata["configuration"].pop("model_version", None)
             session_id = metadata["session_id"]
-            status = _json(folder / f"{prefix}-{session_id}-status.json") or {}
+            status = _clean_event(
+                _json(folder / f"{prefix}-{session_id}-status.json") or {})
             session_trades = [row for row in trades if row.get("run_id") == session_id]
             realized_profit = sum(float(row.get("profit") or 0)
                                   for row in session_trades)
@@ -237,7 +275,7 @@ class BotRepository:
         log_path = self.paper_folder / f"paper-{session_id}.jsonl"
         session["trades"] = [row for row in self.trades()
                              if row.get("run_id") == session_id]
-        session["events"] = list(_jsonl(log_path) or ())
+        session["events"] = [_clean_event(row) for row in (_jsonl(log_path) or ())]
         return session
 
     def trading_session(self, session_id):
@@ -250,7 +288,10 @@ class BotRepository:
         prefix = "paper" if mode == "paper" else "real"
         session["trades"] = [row for row in self.trades()
                              if row.get("run_id") == session_id]
-        session["events"] = list(_jsonl(folder / f"{prefix}-{session_id}.jsonl") or ())
+        session["events"] = [
+            _clean_event(row)
+            for row in (_jsonl(folder / f"{prefix}-{session_id}.jsonl") or ())
+        ]
         return session
 
     def rounds(self):
@@ -261,7 +302,8 @@ class BotRepository:
         traded = set(trades_by_slug)
         rows = []
         for item in self._round_map().values():
-            decision, resolution = item.get("decision"), item.get("resolution", {})
+            decision = _single_decision(item.get("decision"))
+            resolution = item.get("resolution", {})
             if not decision:
                 continue
             prediction, actual = decision.get("direction"), resolution.get("actual_result")
@@ -281,16 +323,9 @@ class BotRepository:
                 "decision_ms": decision.get("decision_ms"), "prediction": prediction,
                 "probability": probability, "p_up": decision.get("p_up"),
                 "p_down": decision.get("p_down"), "reason": decision.get("reason"),
-                "model_version": decision.get("model_version"),
-                "model_probabilities": decision.get("model_probabilities") or {},
-                "model_outputs": decision.get("model_outputs") or {},
                 "market_p_up": market_component.get("p_up"),
                 "market_up_ask": up_quote.get("ask"),
                 "market_down_ask": down_quote.get("ask"),
-                "traded_model_version": (round_trades[0].get("model_version")
-                                         if round_trades else None),
-                "trading_models": sorted({trade.get("model_version") for trade in round_trades
-                                          if trade.get("model_version")}),
                 "warnings": decision.get("warnings") or [], "actual": actual,
                 "result": result, "traded": decision["slug"] in traded,
                 "estimated_edge": decision.get("estimated_edge"),
@@ -307,6 +342,11 @@ class BotRepository:
         if item is None:
             return None
         item = dict(item)
+        if item.get("decision"):
+            item["decision"] = _single_decision(item["decision"])
+        item["entries"] = {
+            key: _clean_event(value) for key, value in item.get("entries", {}).items()
+        }
         item["paper_trades"] = [row for row in self.trades() if row["slug"] == slug]
         return item
 

@@ -481,7 +481,7 @@ class PolymarketAccount:
                     "Current executable price is more than "
                     f"{limit_cents} cents below the signal price")
             if fresh_ask > maximum_price:
-                raise ValueError("Current executable price exceeds the model price limit")
+                raise ValueError("Current executable price exceeds the strategy price limit")
             # One cent is always on the BTC Up/Down tick grid (including the
             # finer 0.001 grid used near the price extremes). The SDK verifies
             # the current tick again while constructing the signed order.

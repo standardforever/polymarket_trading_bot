@@ -12,14 +12,12 @@ from pydantic import BaseModel, Field, model_validator
 
 from .repository import BotRepository
 from ..live import LiveStore
-from ..models import DEFAULT_MODEL, model_releases, validate_model_version
 from ..paper_sessions import PaperSessionManager
 from ..account import PolymarketAccount
 
 
 class PaperSessionCreate(BaseModel):
     mode: Literal["paper", "real"] = "paper"
-    model_version: str = DEFAULT_MODEL
     name: str | None = Field(None, max_length=60)
     starting_bankroll: float | None = Field(None, gt=0, le=1_000_000)
     allocation_percent: float = Field(80, gt=0, le=100)
@@ -35,10 +33,6 @@ class PaperSessionCreate(BaseModel):
 
     @model_validator(mode="after")
     def validate_session_limits(self):
-        try:
-            validate_model_version(self.model_version)
-        except ValueError as error:
-            raise ValueError("Unknown probability model release") from error
         if self.mode == "paper" and self.starting_bankroll is None:
             raise ValueError("paper mode requires a starting bankroll")
         if (self.mode == "real" and self.maximum_trade_usd is not None
@@ -57,7 +51,6 @@ class PaperSessionCreate(BaseModel):
     def runtime_configuration(self):
         return {
             "mode": self.mode,
-            "model_version": self.model_version,
             "name": self.name,
             "starting_bankroll": self.starting_bankroll,
             "allocation_fraction": self.allocation_percent / 100,
@@ -181,12 +174,7 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
     @app.get("/api/v1/dashboard")
     def dashboard():
         return {"live": repository.live(), "statistics": repository.statistics(),
-                "capabilities": capabilities_payload(),
-                "models": model_releases(), "default_model": DEFAULT_MODEL}
-
-    @app.get("/api/v1/models")
-    def models():
-        return {"items": model_releases(), "default": DEFAULT_MODEL}
+                "capabilities": capabilities_payload()}
 
     @app.get("/api/v1/live")
     def live():

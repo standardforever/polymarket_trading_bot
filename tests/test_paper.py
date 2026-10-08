@@ -104,7 +104,7 @@ class PaperTraderTests(unittest.TestCase):
             self.assertIn(slug, trader.candidates)
             trader.close()
 
-    def test_skip_becomes_candidate_when_model_probability_is_at_least_ninety_percent(self):
+    def test_skip_becomes_candidate_when_probability_is_at_least_ninety_percent(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
             (data / "stage4-round-history.jsonl").write_text("")
@@ -116,12 +116,11 @@ class PaperTraderTests(unittest.TestCase):
             })
             candidate = trader.candidates["btc-updown-5m-100"]
             self.assertEqual(candidate["side"], "Up")
-            self.assertEqual(candidate["main_bot_direction"], "SKIP")
             self.assertAlmostEqual(candidate["chance"], .93)
             self.assertEqual(candidate["deadline_ms"], (100 + 300 - 30) * 1000)
             trader.close()
 
-    def test_main_bot_signal_is_ignored_when_model_probability_is_below_threshold(self):
+    def test_signal_is_ignored_when_probability_is_below_threshold(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
             (data / "stage4-round-history.jsonl").write_text("")
@@ -327,7 +326,7 @@ class PaperTraderTests(unittest.TestCase):
             self.assertAlmostEqual(trader.realized_profit, -2.539997 - expected_fee)
             trader.close()
 
-    def test_real_trader_applies_v4_adverse_move_guard(self):
+    def test_real_trader_applies_adverse_move_guard(self):
         class Account:
             def __init__(self): self.orders = []
             def snapshot(self, force=False):
@@ -340,18 +339,16 @@ class PaperTraderTests(unittest.TestCase):
             data = Path(folder)
             (data / "stage4-round-history.jsonl").write_text("")
             account = Account()
-            trader = RealTrader(data, account, 50, allocation_fraction=.2,
-                                model_version="btc_guard_v4")
+            trader = RealTrader(data, account, 50, allocation_fraction=.2)
             slug = "btc-updown-5m-100"
             trader.add_signal({
                 "slug": slug, "start": 100, "decision_ms": 280_000,
                 "fee_rate": .07, "quotes": {"Up": {"ask": ".80"}},
                 "components": {"settlement": {"spot_gap_bps": 8}},
-                "model_outputs": {"btc_guard_v4": {
-                    "p_up": .94, "p_down": .06, "side": "Up", "chance": .94,
-                    "direction": "Up", "reason": "analytic_unvalidated_signal",
-                    "agreement": {"market": "Up", "movement": "Up"},
-                    "warnings": [], "model_risk_blocked": False}},
+                "p_up": .94, "p_down": .06, "direction": "Up",
+                "reason": "analytic_unvalidated_signal",
+                "agreement": {"market": "Up", "movement": "Up"},
+                "warnings": [], "risk_blocked": False,
             })
             trader.consider_quotes(trader.candidates[slug], {
                 "received_ms": 281_000,

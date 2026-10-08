@@ -31,7 +31,7 @@ One command starts the collector and API:
 The API is available at `http://127.0.0.1:8000`; interactive documentation is at `/docs`.
 
 Trading sessions are started from the dashboard. Choose paper or real mode, set
-the probability-model release, session balance, allocation, trade cap, confidence, edge, entry cutoff,
+the session balance, allocation, trade cap, confidence, edge, entry cutoff,
 and optional trade-count, profit, and loss limits. Each session keeps its own
 configuration, status, trades, and event log. Turning a session off cancels
 unfilled candidates; filled positions stay open until the market resolves.
@@ -46,32 +46,20 @@ trades before they are recorded. An ambiguous network submission is never
 retried automatically; that session stops for reconciliation to prevent a
 duplicate real order. The automatic-order hot path uses the live CLOB trigger,
 a lightweight collateral check, and an immediate exchange-enforced FOK order at
-the model's maximum price. It does not repeat the full account snapshot or make
+the strategy's maximum price. It does not repeat the full account snapshot or make
 a separate price-estimate request. Explicit FOK no-fills remain candidates and
 retry at most once per second until the configured entry cutoff.
 
-Model releases are immutable and selected when a session starts. `BTC TWAP v2`
-is the default release with the 2 bps uncertainty floor and 98% cap. The
-experimental `BTC Regime Guard v3` keeps V2's probability formula, recommends
-an 87.5% paper threshold, and skips thin-gap rounds when the recent path is
-classified as `choppy_up`.
-The experimental `BTC Dual Guard v4` also keeps V2's probability formula. It
-uses the smaller of the spot and TWAP gap for close-to-line detection, blocks a
-thin gap combined with either movement disagreement or `choppy_up`, and rejects
-a delayed fill after the selected contract moves more than 15 cents against the
-original signal. New releases can be added without changing the formula used
-by an older session.
-Every release runs a complete shadow decision for each new round, including its
-side, probability, market agreement, warnings, edge, and TRADE/SKIP reason. The
-selected session release controls automatic execution; the other releases stay
-visible for comparison and never place that session's orders.
+The bot uses one probability calculation with a 2 bps uncertainty floor and a
+98% probability cap. Its fixed safeguards use the smaller of the spot and TWAP
+gap for close-to-line detection, block a thin gap combined with either movement
+disagreement or `choppy_up`, and pause a delayed fill after the selected
+contract moves more than 15 cents against the original signal.
 
 Each paper session also sets the trade-size percentage for a thin-gap warning
 and for a movement-disagreement warning. Set either percentage to `0` to skip
-that type of single-warning trade. If both warnings occur together, V2 always
-skips the entry. V3 instead skips a thin gap combined with the `choppy_up`
-regime, while V4 applies both close-to-line guards. These settings can be
-edited while the session is running.
+that type of single-warning trade. The combined close-to-line constraints are
+always enforced. These settings can be edited while the session is running.
 
 Serve existing history without live collection:
 
@@ -94,7 +82,7 @@ main.py                 single entry point
 bot/collector.py        Polymarket order book and round persistence
 bot/market_data.py      official BTC/reference streams
 bot/prediction.py       components, probability, warnings, and signal decision
-bot/models.py           immutable probability-model release registry
+bot/strategy.py         probability formula and fixed trading safeguards
 bot/trading.py          shared fee and order-book rules
 bot/paper.py            paper execution and bankroll calculations
 bot/paper_sessions.py   API-managed session lifecycle
@@ -110,7 +98,6 @@ The prediction uses the official opening price and settlement estimate, recent B
 
 - `GET /health`
 - `GET /api/v1/dashboard`
-- `GET /api/v1/models`
 - `GET /api/v1/live`
 - `GET /api/v1/live/chart`
 - `GET /api/v1/rounds`
@@ -145,10 +132,9 @@ authoritative Polymarket market state again immediately before submission.
 ## UI
 
 The UI is a separate application and reads the bot only through the HTTP and
-WebSocket API. Its main prediction card follows the active session model (or V2
-when no session is active), while compact model cards and the expandable model
-analysis show every release. Round history retains the same shadow decisions so
-model results can be compared after settlement.
+WebSocket API. Its main prediction card and round history show the single bot
+decision, probability, warnings and execution outcome for review after
+settlement.
 
 Start it in another terminal:
 

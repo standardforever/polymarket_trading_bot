@@ -1,7 +1,7 @@
 const API = (window.BOT_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 const WS = API.replace(/^http/, "ws");
 const $ = (id) => document.getElementById(id);
-const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, account: null, orderPreview: null, models: [], defaultModel: "btc_twap_v2",
+const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, account: null, orderPreview: null,
   pages: {
     history: { offset: 0, limit: 25, total: 0 },
     sessions: { offset: 0, limit: 8, total: 0 },
@@ -86,124 +86,11 @@ function prepareMobileTables() {
   });
 }
 
-function activeModelId() {
-  return activeSession()?.configuration?.model_version || state.defaultModel;
-}
-
-function modelOutput(prediction, modelId) {
-  const complete = prediction?.model_outputs?.[modelId];
-  if (complete) return { ...complete, complete: true };
-  const probability = prediction?.model_probabilities?.[modelId];
-  if (probability) {
-    const pUp = Number(probability.p_up);
-    const side = probability.side || (pUp >= .5 ? "Up" : "Down");
-    const chance = probability.chance == null ? Math.max(pUp, 1 - pUp) : Number(probability.chance);
-    const isRecordedPrimary = prediction.model_version === modelId;
-    return { ...probability, p_up: pUp, p_down: 1 - pUp, side, chance,
-      direction: isRecordedPrimary ? prediction.direction : null,
-      reason: isRecordedPrimary ? prediction.reason : "historical_probability_only",
-      estimated_edge: isRecordedPrimary ? prediction.estimated_edge : null,
-      agreement: isRecordedPrimary ? prediction.agreement : null,
-      warnings: isRecordedPrimary ? prediction.warnings : [], complete: false };
-  }
-  if (prediction?.model_version === modelId && prediction.p_up != null) {
-    const pUp = Number(prediction.p_up);
-    return { ...prediction, side: pUp >= .5 ? "Up" : "Down",
-      chance: Math.max(pUp, 1 - pUp), complete: false };
-  }
-  return null;
-}
-
-function modelDecision(output) {
-  if (!output) return "WAITING";
-  if (output.direction === "Up" || output.direction === "Down") return `TRADE ${output.direction.toUpperCase()}`;
-  if (output.direction === "SKIP") return "SKIP";
-  return output.complete ? "ANALYZING" : "PROBABILITY ONLY";
-}
-
-function polymarketComparisonMarkup(prediction) {
-  const rawPUp = prediction?.components?.market?.p_up ?? prediction?.market_p_up;
-  const rawUpAsk = prediction?.quotes?.Up?.ask ?? prediction?.market_up_ask;
-  const rawDownAsk = prediction?.quotes?.Down?.ask ?? prediction?.market_down_ask;
-  const pUp = rawPUp == null ? null : Number(rawPUp);
-  const upAsk = rawUpAsk == null ? null : Number(rawUpAsk);
-  const downAsk = rawDownAsk == null ? null : Number(rawDownAsk);
-  const upPrice = Number.isFinite(upAsk) ? upAsk : Number.isFinite(pUp) ? pUp : null;
-  const downPrice = Number.isFinite(downAsk) ? downAsk : Number.isFinite(pUp) ? 1 - pUp : null;
-  const usedFallback = !Number.isFinite(upAsk) || !Number.isFinite(downAsk);
-  const marketCents = value => {
-    if (!Number.isFinite(value)) return "—";
-    const cents = value * 100;
-    return `${Number.isInteger(cents) ? cents.toFixed(0) : cents.toFixed(1)}¢`;
-  };
-  const side = Number.isFinite(pUp) ? (pUp >= .5 ? "Up" : "Down")
-    : Number.isFinite(upPrice) && Number.isFinite(downPrice) ? (upPrice >= downPrice ? "Up" : "Down") : null;
-  const favoredPrice = side === "Up" ? upPrice : side === "Down" ? downPrice : null;
-  return `<div class="model-result market-reference ${sideClass(side)}">
-    <div class="model-result-head"><strong>Polymarket</strong><span>MARKET</span></div>
-    <div class="model-result-signal"><b>${side || "—"}</b><em>${marketCents(favoredPrice)}</em></div>
-    <small>UP ${marketCents(upPrice)} · DOWN ${marketCents(downPrice)}${usedFallback ? " · MIDPOINT FALLBACK" : " · RECORDED ASKS"}</small>
-  </div>`;
-}
-
-function modelComparisonMarkup(prediction, selectedId, compact = false) {
-  const models = state.models.map(release => {
-    const output = modelOutput(prediction, release.id);
-    const side = output?.side;
-    const chance = output?.chance;
-    const decision = modelDecision(output);
-    const selected = release.id === selectedId;
-    return `<div class="model-result ${selected ? "selected" : ""} ${sideClass(side)}">
-      <div class="model-result-head"><strong>${escapeHtml(release.name)}</strong>${selected ? `<span>ACTIVE</span>` : release.default ? `<span>DEFAULT</span>` : ""}</div>
-      <div class="model-result-signal"><b>${side || "—"}</b><em>${fmt.percent(chance)}</em></div>
-      <small class="${decision.startsWith("TRADE") ? "positive" : decision === "SKIP" ? "warning-text" : ""}">${decision}</small>
-      ${compact ? "" : `<p>${escapeHtml(output ? humanReason(output.reason) : "Waiting for the decision snapshot.")}</p>`}
-    </div>`;
-  }).join("");
-  return models + polymarketComparisonMarkup(prediction);
-}
-
-function modelAnalysisMarkup(prediction, selectedId, actual = null) {
-  return state.models.map(release => {
-    const output = modelOutput(prediction, release.id);
-    const result = !actual || !output ? null
-      : output.direction === "Up" || output.direction === "Down"
-        ? (output.direction === actual ? "WIN" : "LOSS") : "SKIP";
-    return `<div class="model-analysis-row ${release.id === selectedId ? "selected" : ""}">
-      <div><strong>${escapeHtml(release.name)}</strong><small>${release.id === selectedId ? "Selected trading model" : release.default ? "Dashboard default" : "Comparison model"}</small></div>
-      <div><span>Forecast</span><b class="${sideClass(output?.side)}">${output?.side || "—"} ${fmt.percent(output?.chance)}</b></div>
-      <div><span>Decision</span><b>${modelDecision(output)}</b></div>
-      <div><span>Edge</span><b>${fmt.percent(output?.estimated_edge)}</b></div>
-      ${result ? `<div><span>Outcome</span><b>${badge(result)}</b></div>` : ""}
-      <p>${escapeHtml(output ? humanReason(output.reason) : "Waiting for this model's analysis.")}</p>
-    </div>`;
-  }).join("");
-}
-
-function renderModelComparison(prediction, selectedId) {
-  const outputs = state.models.map(release => ({ release, output: modelOutput(prediction, release.id) }));
-  const available = outputs.filter(item => item.output?.side);
-  const sides = new Set(available.map(item => item.output.side));
-  const decisions = new Set(available.map(item => modelDecision(item.output)));
-  let consensus = "Waiting for every model to finish this round.";
-  if (available.length) {
-    if (sides.size > 1) consensus = "Models disagree on the predicted direction. Review before trading.";
-    else if (decisions.size > 1) consensus = `Models predict ${available[0].output.side.toUpperCase()}, but disagree on whether the entry qualifies.`;
-    else consensus = `All available models agree: ${modelDecision(available[0].output)}.`;
-  }
-  $("modelConsensus").textContent = consensus;
-  $("modelComparison").innerHTML = modelComparisonMarkup(prediction, selectedId);
-  $("modelAnalysis").innerHTML = modelAnalysisMarkup(prediction, selectedId);
-}
-
 function renderLive() {
   const live = state.live || {};
   const prediction = live.prediction || {};
   const paper = live.trading || live.paper;
-  const selectedModel = activeModelId();
-  const selectedOutput = modelOutput(prediction, selectedModel);
-  const primary = selectedOutput ? { ...prediction, ...selectedOutput,
-    model_version: selectedModel, market_stability: prediction.market_stability } : prediction;
+  const primary = prediction;
   const direction = primary.direction || "—";
   const pUp = primary.p_up == null ? null : Number(primary.p_up);
   const pDown = primary.p_down == null ? (pUp == null ? null : 1 - pUp) : Number(primary.p_down);
@@ -218,7 +105,6 @@ function renderLive() {
   $("countdown").dataset.updated = prediction.updated_ms ?? Date.now();
   $("countdown").textContent = fmt.time(prediction.remaining_seconds);
   $("bankroll").textContent = paper ? fmt.usd(paper.available_bankroll) : "Not running";
-  $("activeModelCopy").textContent = `${modelName(selectedModel)} · ${activeSession() ? "controls active session" : "dashboard default"}`;
   $("directionArrow").textContent = direction === "Up" ? "↗" : direction === "Down" ? "↘" : isSkip ? "×" : "·";
   $("upProbability").textContent = fmt.percent(pUp);
   $("downProbability").textContent = fmt.percent(pDown);
@@ -242,7 +128,6 @@ function renderLive() {
   $("warnings").innerHTML = (primary.warnings || []).map(w => `<span class="warning-chip">⚠ ${w.replaceAll("_", " ")}</span>`).join("");
   renderAgreement(primary.agreement || {}, direction);
   renderStability(prediction.market_stability || {});
-  renderModelComparison(prediction, selectedModel);
   renderPaperControl();
 }
 
@@ -302,19 +187,14 @@ function humanReason(reason, fallback) {
   const explanations = {
     analytic_unvalidated_signal: "The probability, market direction, liquidity, and profit edge passed.",
     analytic_probability_below_90pct: "Confidence is below the configured signal threshold.",
-    analytic_probability_below_87_5pct: "Confidence is below V3's recommended 87.5% threshold.",
-    analytic_combined_risk: "BTC is close to the opening price while recent movement disagrees with the predicted side.",
-    analytic_regime_risk: "V3 blocked a thin-gap round whose recent price path is choppy and upward.",
-    analytic_v4_dual_risk: "V4 blocked a close-to-line round with movement disagreement or a choppy-up price path.",
-    dual_risk: "V4's close-to-line risk guard blocked this entry.",
-    confidence_below_threshold: "The forecast did not reach this model's trading threshold.",
+    analytic_combined_risk: "BTC is close to the opening price while movement disagrees or the recent path is choppy and upward.",
+    combined_risk: "The close-to-line risk guard blocked this entry.",
+    confidence_below_threshold: "The forecast did not reach the session confidence threshold.",
     adverse_price_move_requires_confirmation: "The contract price moved more than 15¢ against the original signal before a fill was available.",
-    regime_risk: "V3 blocked the thin-gap and choppy-up risk pattern.",
     "analytic_disagreement:market": "The settlement estimate and Polymarket direction disagree.",
     analytic_edge_below_threshold: "The available price is too expensive for the required profit margin.",
     analytic_liquidity_unavailable: "There is not enough reliable liquidity at the best price.",
-    model_market_disagreement: "This model's predicted side disagrees with Polymarket's direction.",
-    historical_probability_only: "This older round recorded the probability, but not the model's complete decision.",
+    market_disagreement: "The predicted side disagrees with Polymarket's direction.",
     decision_window_missed: "A complete snapshot was not available inside the decision window.",
   };
   return explanations[reason] || reason.replaceAll("_", " ");
@@ -659,7 +539,11 @@ async function loadRounds() {
   const result = await request(`/api/v1/rounds?${query}`);
   state.rounds = result.items;
   Object.assign(page, { total: result.total, offset: result.offset, limit: result.limit });
-  $("historyBody").innerHTML = state.rounds.map(row => `<tr data-slug="${row.slug}"><td><b>${fmt.date(row.start)}</b><br><small class="mono">${row.slug.replace("btc-updown-5m-", "#")}</small></td><td class="${sideClass(row.prediction)}"><b>${row.prediction}</b></td><td class="history-models">${modelComparisonMarkup(row, row.traded_model_version || row.model_version || state.defaultModel, true)}</td><td>${row.actual || "—"}</td><td>${badge(row.result)}</td><td class="mono">${fmt.percent(row.estimated_edge)}</td><td>${row.traded ? `Yes${row.traded_model_version ? `<small>${escapeHtml(modelName(row.traded_model_version))}</small>` : ""}` : "No"}</td></tr>`).join("");
+  $("historyBody").innerHTML = state.rounds.map(row => {
+    const confidence = row.prediction === "Up" ? row.p_up : row.prediction === "Down" ? row.p_down : Math.max(Number(row.p_up || 0), Number(row.p_down || 0));
+    const market = `Up ${fmt.cents(row.market_up_ask)} · Down ${fmt.cents(row.market_down_ask)}`;
+    return `<tr data-slug="${row.slug}"><td><b>${fmt.date(row.start)}</b><br><small class="mono">${row.slug.replace("btc-updown-5m-", "#")}</small></td><td class="${sideClass(row.prediction)}"><b>${row.prediction}</b></td><td class="mono">${fmt.percent(confidence)}</td><td class="mono">${market}</td><td>${row.actual || "—"}</td><td>${badge(row.result)}</td><td class="mono">${fmt.percent(row.estimated_edge)}</td><td>${row.traded ? "Yes" : "No"}</td></tr>`;
+  }).join("");
   $("historyEmpty").classList.toggle("hidden", state.rounds.length > 0);
   renderPagination("history");
   prepareMobileTables();
@@ -670,8 +554,7 @@ async function openRound(slug) {
   try {
     const detail = await request(`/api/v1/rounds/${slug}`);
     const decision = detail.decision || {};
-    const tradedModel = detail.paper_trades?.[0]?.model_version || decision.model_version || state.defaultModel;
-    $("roundDetail").innerHTML = `<p class="eyebrow">ROUND INSPECTION</p><h2>${slug}</h2><div class="signal-stats"><div><span>Default prediction</span><b class="${sideClass(decision.direction)}">${decision.direction || "—"}</b></div><div><span>UP probability</span><b>${fmt.percent(decision.p_up)}</b></div><div><span>Result</span><b>${detail.resolution?.actual_result || "Pending"}</b></div></div><div class="detail-section"><h3>MODEL COMPARISON</h3><div class="model-comparison">${modelComparisonMarkup(decision, tradedModel)}</div><div class="round-model-analysis">${modelAnalysisMarkup(decision, tradedModel, detail.resolution?.actual_result)}</div></div><div class="detail-section"><h3>DEFAULT DECISION REASON</h3><p>${humanReason(decision.reason)}</p></div><div class="detail-section"><h3>AGREEMENT</h3><pre class="detail-json"></pre></div><div class="detail-section"><h3>COMPONENTS</h3><pre class="detail-json"></pre></div>`;
+    $("roundDetail").innerHTML = `<p class="eyebrow">ROUND INSPECTION</p><h2>${slug}</h2><div class="signal-stats"><div><span>Decision</span><b class="${sideClass(decision.direction)}">${decision.direction || "—"}</b></div><div><span>UP probability</span><b>${fmt.percent(decision.p_up)}</b></div><div><span>DOWN probability</span><b>${fmt.percent(decision.p_down)}</b></div><div><span>Result</span><b>${detail.resolution?.actual_result || "Pending"}</b></div></div><div class="detail-section"><h3>DECISION REASON</h3><p>${humanReason(decision.reason)}</p></div><div class="detail-section"><h3>AGREEMENT</h3><pre class="detail-json"></pre></div><div class="detail-section"><h3>COMPONENTS</h3><pre class="detail-json"></pre></div>`;
     const blocks = $("roundDetail").querySelectorAll("pre");
     blocks[0].textContent = JSON.stringify(decision.agreement || {}, null, 2);
     blocks[1].textContent = JSON.stringify(decision.components || {}, null, 2);
@@ -683,60 +566,13 @@ function isTerminalSession(session) {
   return ["STOPPED", "COMPLETED", "GAME_OVER"].includes(session?.status);
 }
 
-function modelRelease(modelId) {
-  return state.models.find(model => model.id === modelId) || null;
-}
-
-function modelName(modelId) {
-  return modelRelease(modelId)?.name || (modelId ? modelId : "Unversioned model");
-}
-
-function riskRuleText(modelId) {
-  const release = modelRelease(modelId);
-  if (release?.risk_rule === "thin_gap_and_movement_or_choppy_up") {
-    const adverseCents = Math.round(Number(release.maximum_adverse_price_move || .15) * 100);
-    return {
-      title: "V4 dual protection",
-      copy: `A conservative spot-or-TWAP thin gap combined with movement disagreement or choppy-up is skipped. A fill is also rejected after a ${adverseCents}¢ adverse price move.`,
-      budget: `Dual risk: SKIP · adverse move: ${adverseCents}¢ max`,
-      session: `dual close-to-line risk skipped; ${adverseCents}¢ adverse-move guard`,
-    };
-  }
-  if (release?.risk_rule === "thin_gap_and_choppy_up") {
-    return {
-      title: "V3 regime protection",
-      copy: "A thin gap together with a choppy-up price regime is always skipped. Movement disagreement remains a configurable size warning.",
-      budget: "Thin choppy-up: SKIP",
-      session: "thin gap with choppy-up skipped",
-    };
-  }
+function riskRuleText() {
   return {
     title: "Combined-risk protection",
-    copy: "A thin gap together with movement disagreement is always skipped.",
-    budget: "Combined risk: SKIP",
-    session: "combined risk skipped",
+    copy: "A conservative spot-or-TWAP thin gap combined with movement disagreement or choppy-up is skipped. Entry also pauses when the selected contract falls more than 15¢ from its signal price.",
+    budget: "Combined risk: SKIP · adverse move: 15¢ max",
+    session: "combined close-to-line risk skipped; 15¢ adverse-move guard",
   };
-}
-
-function renderModelChoices(selected, applyRecommendation = false) {
-  const select = $("sessionModelVersion");
-  if (!select || !state.models.length) return;
-  const value = selected || select.value || state.defaultModel;
-  select.innerHTML = state.models.map(model =>
-    `<option value="${escapeHtml(model.id)}">${escapeHtml(model.name)}${model.default ? " · Recommended" : ""}</option>`
-  ).join("");
-  select.value = state.models.some(model => model.id === value) ? value : state.defaultModel;
-  const release = modelRelease(select.value);
-  const recommended = Number(release?.recommended_confidence);
-  if (applyRecommendation && Number.isFinite(recommended)) {
-    $("paperSessionForm").elements.confidence_percent.value = recommended * 100;
-  }
-  const recommendation = Number.isFinite(recommended)
-    ? ` Recommended paper confidence: ${fmt.percent(recommended, 1)}.` : "";
-  $("sessionModelCopy").textContent = (release?.description || "Choose the signal model this session will trade.") + recommendation;
-  const rule = riskRuleText(select.value);
-  $("sessionRiskRuleTitle").textContent = rule.title;
-  $("sessionRiskRuleCopy").textContent = rule.copy;
 }
 
 function activeSession() {
@@ -764,7 +600,7 @@ function renderPaperControl() {
 function renderSessionList() {
   state.sessions.sort((a, b) => Number(b.created_ms || 0) - Number(a.created_ms || 0));
   $("sessionsEmpty").classList.toggle("hidden", state.sessions.length > 0);
-  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${String(session.mode || "paper").toUpperCase()} · ${escapeHtml(modelName(session.configuration?.model_version))} · ${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>BALANCE<b>${fmt.usd(session.status_detail?.available_bankroll)}</b></span><span>TRADES<b>${session.trade_count}</b></span><span>P&amp;L<b class="${session.realized_profit >= 0 ? "positive" : "negative"}">${fmt.usd(session.realized_profit)}</b></span></div></button>`).join("");
+  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${String(session.mode || "paper").toUpperCase()} · ${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>BALANCE<b>${fmt.usd(session.status_detail?.available_bankroll)}</b></span><span>TRADES<b>${session.trade_count}</b></span><span>P&amp;L<b class="${session.realized_profit >= 0 ? "positive" : "negative"}">${fmt.usd(session.realized_profit)}</b></span></div></button>`).join("");
   document.querySelectorAll(".session-item").forEach(button => button.addEventListener("click", () => selectPaperSession(button.dataset.sessionId)));
   renderPaperControl();
 }
@@ -785,9 +621,8 @@ function renderSessionDetail() {
       config.target_profit_usd ? `${fmt.usd(config.target_profit_usd)} profit target` : null,
       config.max_loss_usd ? `${fmt.usd(config.max_loss_usd)} loss limit` : null].filter(Boolean);
     const allocationRule = session.legacy ? "legacy 80% / below-$20 rule" : `${fmt.percent(config.allocation_fraction, 0)} of balance per trade`;
-    const modelRisk = riskRuleText(config.model_version).session;
-    const riskRules = session.legacy ? "legacy risk sizing" : `thin gap ${fmt.percent(config.thin_gap_allocation_fraction ?? .25, 0)} · movement warning ${fmt.percent(config.movement_disagreement_allocation_fraction ?? .5, 0)} · ${modelRisk}`;
-    $("sessionRules").textContent = `${String(session.mode || "paper").toUpperCase()} · ${modelName(config.model_version)} · ${fmt.percent(config.model_threshold)} confidence · ${fmt.percent(config.minimum_edge)} edge · ${allocationRule} · ${riskRules} · stop entries at ${fmt.num(config.entry_cutoff_seconds, 0)}s · ${stopRules.join(" · ")}`;
+    const riskRules = session.legacy ? "legacy risk sizing" : `thin gap ${fmt.percent(config.thin_gap_allocation_fraction ?? .25, 0)} · movement warning ${fmt.percent(config.movement_disagreement_allocation_fraction ?? .5, 0)} · ${riskRuleText().session}`;
+    $("sessionRules").textContent = `${String(session.mode || "paper").toUpperCase()} · ${fmt.percent(config.model_threshold)} confidence · ${fmt.percent(config.minimum_edge)} edge · ${allocationRule} · ${riskRules} · stop entries at ${fmt.num(config.entry_cutoff_seconds, 0)}s · ${stopRules.join(" · ")}`;
     const values = [["Starting", fmt.usd(config.starting_bankroll)], ["Available", fmt.usd(session.status_detail?.available_bankroll)], ["Trades", session.trade_count], ["Wins / losses", `${session.wins} / ${session.losses}`], ["Realized P&L", fmt.usd(session.realized_profit)]];
     $("tradeMetrics").innerHTML = values.map(([label,value]) => `<div class="metric"><span>${label}</span><b>${value}</b></div>`).join("");
     const editable = activeSession()?.session_id === session.session_id && !isTerminalSession(session);
@@ -815,7 +650,7 @@ function sessionEventDescription(event) {
   if (event.event === "entry_expired") return `${round} · no acceptable fill before the entry cutoff`;
   if (event.event === "entry_cancelled") return `${round} · ${String(event.reason || "cancelled").replaceAll("_", " ")}`;
   if (event.event === "session_stopped" || event.event === "game_over") return String(event.reason || "session ended").replaceAll("_", " ");
-  if (event.event === "run_started") return `Started in ${(event.execution_mode || "paper").toUpperCase()} mode with ${fmt.usd(event.starting_bankroll)} · ${modelName(event.model_version)}`;
+  if (event.event === "run_started") return `Started in ${(event.execution_mode || "paper").toUpperCase()} mode with ${fmt.usd(event.starting_bankroll)}`;
   if (event.event === "order_preflight_rejected") return `${round} · exchange preflight: ${event.message || "rejected"}`;
   if (event.event === "order_submission_uncertain") return `${round} · submission result uncertain; retry suppressed to prevent a duplicate order`;
   if (event.event === "order_rejected") return `${round} · Polymarket rejected the FOK order`;
@@ -931,13 +766,13 @@ function executableBudget(bankroll, fraction, cap, multiplier = 1) {
   return { amount: Math.min(bankroll, raw), skipped: false, floored: false };
 }
 
-function riskBudgetCopy(bankroll, fraction, cap, thinFraction, movementFraction, modelId) {
+function riskBudgetCopy(bankroll, fraction, cap, thinFraction, movementFraction) {
   const describe = (label, multiplier) => {
     const budget = executableBudget(bankroll, fraction, cap, multiplier);
     if (multiplier <= 0 || budget.skipped) return `${label}: SKIP`;
     return `${label}: ${fmt.usd(budget.amount)}${budget.floored ? " (raised to $1 minimum)" : ""}`;
   };
-  return `${describe("Thin gap", thinFraction)} · ${describe("Movement warning", movementFraction)} · ${riskRuleText(modelId).budget} · fees separate`;
+  return `${describe("Thin gap", thinFraction)} · ${describe("Movement warning", movementFraction)} · ${riskRuleText().budget} · fees separate`;
 }
 
 function syncSessionMode() {
@@ -992,8 +827,7 @@ function updateSessionBudgetPreview() {
   $("sessionRiskBudgetPreview").textContent = riskBudgetCopy(
     bankroll, fraction, cap,
     Number(form.elements.thin_gap_allocation_percent.value) / 100,
-    Number(form.elements.movement_disagreement_allocation_percent.value) / 100,
-    form.elements.model_version.value);
+    Number(form.elements.movement_disagreement_allocation_percent.value) / 100);
 }
 
 function updateEditSessionBudgetPreview() {
@@ -1008,8 +842,7 @@ function updateEditSessionBudgetPreview() {
   $("editSessionRiskBudgetPreview").textContent = riskBudgetCopy(
     bankroll, fraction, cap,
     Number(form.elements.thin_gap_allocation_percent.value) / 100,
-    Number(form.elements.movement_disagreement_allocation_percent.value) / 100,
-    state.sessionDetail?.configuration?.model_version);
+    Number(form.elements.movement_disagreement_allocation_percent.value) / 100);
 }
 
 function openEditSessionDialog() {
@@ -1044,7 +877,7 @@ function openEditSessionDialog() {
     form.elements.maximum_trade_usd.min = "0.01";
   }
   $("editSessionFormMessage").textContent = "";
-  const rule = riskRuleText(config.model_version);
+  const rule = riskRuleText();
   $("editSessionRiskRuleTitle").textContent = rule.title;
   $("editSessionRiskRuleCopy").textContent = rule.copy;
   updateEditSessionBudgetPreview();
@@ -1097,7 +930,9 @@ function openPaperSessionDialog() {
   const form = $("paperSessionForm");
   form.reset();
   form.elements.mode.value = "paper";
-  renderModelChoices(state.defaultModel, true);
+  const rule = riskRuleText();
+  $("sessionRiskRuleTitle").textContent = rule.title;
+  $("sessionRiskRuleCopy").textContent = rule.copy;
   $("sessionFormMessage").textContent = "";
   syncSessionMode();
   updateSessionBudgetPreview();
@@ -1110,7 +945,6 @@ async function startPaperSession(event) {
   const submit = form.querySelector("button[type=submit]");
   const payload = {
     mode: form.elements.mode.value,
-    model_version: form.elements.model_version.value,
     name: form.elements.name.value.trim() || null,
     starting_bankroll: form.elements.mode.value === "paper"
       ? Number(form.elements.starting_bankroll.value) : null,
@@ -1147,9 +981,6 @@ async function refresh() {
   try {
     const [dashboard, chart, health, account] = await Promise.all([request("/api/v1/dashboard"), request("/api/v1/live/chart"), request("/health"), request("/api/v1/account")]);
     state.dashboard = dashboard; state.live = dashboard.live; state.chart = chart; state.health = health; state.account = account;
-    state.models = dashboard.models || state.models;
-    state.defaultModel = dashboard.default_model || state.defaultModel;
-    renderModelChoices();
     $("collectorStatus").textContent = health.collector.fresh ? "Live" : health.collector.available ? "Stale" : "Offline";
     $("collectorStatus").className = health.collector.fresh ? "positive" : "negative";
     renderLive(); renderCharts(); renderStatistics(); renderAccount();
@@ -1255,10 +1086,6 @@ $("autoTradingToggle").addEventListener("change", toggleAutomaticTrading);
 $("newSessionButton").addEventListener("click", openPaperSessionDialog);
 $("paperSessionForm").addEventListener("submit", startPaperSession);
 $("paperSessionForm").addEventListener("input", updateSessionBudgetPreview);
-$("sessionModelVersion").addEventListener("change", () => {
-  renderModelChoices($("sessionModelVersion").value, true);
-  updateSessionBudgetPreview();
-});
 document.querySelectorAll('#paperSessionForm input[name="mode"]').forEach(
   input => input.addEventListener("change", syncSessionMode));
 $("sessionDialogClose").addEventListener("click", () => { $("paperSessionDialog").close(); renderPaperControl(); });

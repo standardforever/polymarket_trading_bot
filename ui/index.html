@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=20261008-strategy-cleanup">
+  <link rel="stylesheet" href="styles.css?v=20261008-single-strategy">
 </head>
 <body>
   <div class="shell">
@@ -55,7 +55,7 @@
 
         <div class="hero-grid">
           <article class="card signal-card">
-            <div class="card-head"><div><span class="label">CURRENT PREDICTION</span><small class="active-model-copy" id="activeModelCopy">BTC TWAP v2 · dashboard default</small></div><span class="pill muted" id="signalState">WAITING</span></div>
+            <div class="card-head"><div><span class="label">CURRENT PREDICTION</span></div><span class="pill muted" id="signalState">WAITING</span></div>
             <div class="probability-grid">
               <div class="probability-side up"><span>UP PROBABILITY</span><strong id="upProbability">—</strong><small>BTC settles above open</small></div>
               <div class="probability-side down"><span>DOWN PROBABILITY</span><strong id="downProbability">—</strong><small>BTC settles below open</small></div>
@@ -72,9 +72,6 @@
               <div><span>Estimated edge</span><b id="edge">—</b></div>
               <div><span>Decision TWAP gap</span><b id="distance">—</b></div>
             </div>
-            <div class="model-comparison-head"><div><span class="label">MODEL COMPARISON</span><p id="modelConsensus">Waiting for every model to finish this round.</p></div></div>
-            <div class="model-comparison" id="modelComparison"></div>
-            <details class="model-analysis"><summary>Compare full model analysis</summary><div id="modelAnalysis"></div></details>
           </article>
 
           <article class="card market-card">
@@ -116,7 +113,7 @@
               <div class="active-position-sell"><input id="activePositionSellShares" aria-label="Shares to sell" type="number" min="0.000001" step="0.000001"><button id="activePositionSellButton">Review sell</button></div>
               <small id="activePositionNote">Profit and loss uses the live executable bid.</small>
             </div>
-            <div class="book-footer"><span>Model market agreement</span><b id="marketAgreement">—</b></div>
+            <div class="book-footer"><span>Market agreement</span><b id="marketAgreement">—</b></div>
           </article>
         </div>
 
@@ -155,7 +152,7 @@
       <section class="view" id="historyView">
         <article class="card table-card">
           <div class="table-tools"><div><span class="label">ALL EVALUATED ROUNDS</span><h2>Prediction history</h2></div><div class="filters"><select id="resultFilter"><option value="">All results</option><option>WIN</option><option>LOSS</option><option>SKIP</option><option>PENDING</option></select><select id="predictionFilter"><option value="">All predictions</option><option>Up</option><option>Down</option><option>SKIP</option></select><select id="tradedFilter"><option value="">All rounds</option><option value="true">Traded</option><option value="false">Not traded</option></select></div></div>
-          <div class="table-scroll"><table><thead><tr><th>Round</th><th>Default decision</th><th>Model comparison</th><th>Actual</th><th>Result</th><th>Default edge</th><th>Trade</th></tr></thead><tbody id="historyBody"></tbody></table></div>
+          <div class="table-scroll"><table><thead><tr><th>Round</th><th>Decision</th><th>Confidence</th><th>Polymarket</th><th>Actual</th><th>Result</th><th>Edge</th><th>Trade</th></tr></thead><tbody id="historyBody"></tbody></table></div>
           <div class="empty-state hidden" id="historyEmpty">No rounds match these filters.</div>
           <div class="pagination" id="historyPagination"><button class="secondary-button" id="historyPrevious">Previous</button><span id="historyPageInfo">Page 1</span><button class="secondary-button" id="historyNext">Next</button></div>
         </article>
@@ -198,7 +195,6 @@
     <p class="eyebrow">NEW TRADING SESSION</p><h2>Choose the mode and set the rules</h2>
     <form id="paperSessionForm" class="session-form">
       <div class="full mode-field"><span>Execution mode</span><div class="mode-choice"><label><input type="radio" name="mode" value="paper" checked><b>Paper</b><small>Simulation</small></label><label><input type="radio" name="mode" value="real"><b>Real money</b><small>Live account</small></label></div><small id="sessionModeCopy">Uses a simulated bankroll and never submits an exchange order.</small></div>
-      <label class="full"><span>Probability model <small>The selected release stays fixed for this session</small></span><select name="model_version" id="sessionModelVersion" required></select><small id="sessionModelCopy">Choose the probability formula this session will trade.</small></label>
       <label class="full"><span>Session name <small>Optional label for this run</small></span><input name="name" maxlength="60" placeholder="Morning BTC session"></label>
       <label id="startingBankrollField"><span>Starting balance</span><div class="input-unit"><i>$</i><input name="starting_bankroll" type="number" min="0.01" step="0.01" value="50" required></div><small id="startingBankrollCopy">Simulated money for this session.</small></label>
       <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" value="80" required><i>%</i></div></label>
@@ -249,6 +245,6 @@
   </dialog>
   <div class="toast" id="toast"></div>
   <script src="config.js"></script>
-  <script type="module" src="app.js?v=20261008-strategy-cleanup"></script>
+  <script type="module" src="app.js?v=20261008-single-strategy"></script>
 </body>
 </html>
