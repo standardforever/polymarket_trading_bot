@@ -134,7 +134,7 @@ class PredictionTests(unittest.TestCase):
         self.assertEqual(decision["reason"], "analytic_unvalidated_signal")
         self.assertFalse(decision["probability_calibrated"])
         self.assertEqual(set(decision["model_outputs"]),
-                         {"btc_twap_v1", "btc_twap_v2", "btc_regime_v3", "btc_guard_v4"})
+                         {"btc_twap_v2", "btc_regime_v3", "btc_guard_v4"})
         self.assertEqual(decision["model_outputs"]["btc_twap_v2"]["direction"],
                          decision["direction"])
 
@@ -148,10 +148,12 @@ class PredictionTests(unittest.TestCase):
                                       momentum_60=1, twap_slope_30=1)
         components["market"]["p_up"] = .9
         outputs = analytic_releases(components, quotes, .07)
-        self.assertGreater(outputs["btc_twap_v1"]["chance"], .99)
         self.assertLess(outputs["btc_twap_v2"]["chance"], .9)
-        self.assertEqual(outputs["btc_twap_v1"]["direction"], "Up")
         self.assertEqual(outputs["btc_twap_v2"]["direction"], "SKIP")
+        self.assertEqual(outputs["btc_regime_v3"]["chance"],
+                         outputs["btc_twap_v2"]["chance"])
+        self.assertEqual(outputs["btc_guard_v4"]["chance"],
+                         outputs["btc_twap_v2"]["chance"])
 
     def test_live_engine_waits_for_complete_snapshot_inside_fixed_window(self):
         market, context, history, quotes = fixture()
@@ -196,7 +198,7 @@ class PredictionTests(unittest.TestCase):
         self.assertTrue(decision["reason"].startswith(
             "analytic_missing_components:settlement"))
         self.assertEqual(set(decision["model_outputs"]),
-                         {"btc_twap_v1", "btc_twap_v2", "btc_regime_v3", "btc_guard_v4"})
+                         {"btc_twap_v2", "btc_regime_v3", "btc_guard_v4"})
 
     def test_analytic_signal_treats_movement_disagreement_as_warning(self):
         _, _, _, quotes = fixture()

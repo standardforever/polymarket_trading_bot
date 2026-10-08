@@ -212,8 +212,7 @@ class ApiTests(unittest.TestCase):
         models = client.get("/api/v1/models").json()
         self.assertEqual(models["default"], "btc_twap_v2")
         self.assertEqual([row["id"] for row in models["items"]],
-                         ["btc_twap_v1", "btc_twap_v2", "btc_regime_v3",
-                          "btc_guard_v4"])
+                         ["btc_twap_v2", "btc_regime_v3", "btc_guard_v4"])
         regime = next(row for row in models["items"]
                       if row["id"] == "btc_regime_v3")
         self.assertTrue(regime["experimental"])

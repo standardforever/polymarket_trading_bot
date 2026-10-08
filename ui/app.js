@@ -102,7 +102,7 @@ function modelOutput(prediction, modelId) {
     const isRecordedPrimary = prediction.model_version === modelId;
     return { ...probability, p_up: pUp, p_down: 1 - pUp, side, chance,
       direction: isRecordedPrimary ? prediction.direction : null,
-      reason: isRecordedPrimary ? prediction.reason : "legacy_probability_only",
+      reason: isRecordedPrimary ? prediction.reason : "historical_probability_only",
       estimated_edge: isRecordedPrimary ? prediction.estimated_edge : null,
       agreement: isRecordedPrimary ? prediction.agreement : null,
       warnings: isRecordedPrimary ? prediction.warnings : [], complete: false };
@@ -315,7 +315,7 @@ function humanReason(reason, fallback) {
     analytic_edge_below_threshold: "The available price is too expensive for the required profit margin.",
     analytic_liquidity_unavailable: "There is not enough reliable liquidity at the best price.",
     model_market_disagreement: "This model's predicted side disagrees with Polymarket's direction.",
-    legacy_probability_only: "This older round recorded the probability, but not the model's complete decision.",
+    historical_probability_only: "This older round recorded the probability, but not the model's complete decision.",
     decision_window_missed: "A complete snapshot was not available inside the decision window.",
   };
   return explanations[reason] || reason.replaceAll("_", " ");
@@ -899,7 +899,7 @@ function renderSettings() {
   const form = $("settingsForm");
   Object.entries(values).forEach(([key,value]) => { const input = form.elements[key]; if (!input) return; input.type === "checkbox" ? input.checked = value : input.value = value; });
   const c = state.dashboard?.capabilities || {};
-  $("capabilityList").innerHTML = [["Paper sessions", c.paper_session_runtime], ["Four-model races", c.model_races], ["Automatic real trading", c.automatic_real_trading], ["Manual real orders", c.manual_orders], ["Live WebSocket", c.live_websocket]].map(([name,on]) => `<div><span>${name}</span><b>${on ? "AVAILABLE" : "DISABLED"}</b></div>`).join("");
+  $("capabilityList").innerHTML = [["Paper sessions", c.paper_session_runtime], ["Model races", c.model_races], ["Automatic real trading", c.automatic_real_trading], ["Manual real orders", c.manual_orders], ["Live WebSocket", c.live_websocket]].map(([name,on]) => `<div><span>${name}</span><b>${on ? "AVAILABLE" : "DISABLED"}</b></div>`).join("");
   renderPaperControl();
 }
 
@@ -1268,7 +1268,7 @@ async function startModelRace(event) {
     state.selectedRaceId = race.race_id;
     $("modelRaceMessage").textContent = "All models started with equal money. Their balances now compound independently.";
     await loadModelRaces();
-    toast("Four-model race started");
+    toast("Model race started");
   } catch (error) { $("modelRaceMessage").textContent = error.message; }
   finally { if (state.raceDetail?.status !== "RUNNING") $("startModelRaceButton").disabled = false; }
 }

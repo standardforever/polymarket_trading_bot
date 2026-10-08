@@ -1,4 +1,4 @@
-"""Independent four-model paper races for forward performance comparison."""
+"""Independent model paper races for forward performance comparison."""
 
 import json
 import threading

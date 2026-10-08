@@ -50,9 +50,8 @@ the model's maximum price. It does not repeat the full account snapshot or make
 a separate price-estimate request. Explicit FOK no-fills remain candidates and
 retry at most once per second until the configured entry cutoff.
 
-Model releases are immutable and selected when a session starts. `BTC TWAP v1`
-preserves the legacy raw-volatility probability, while `BTC TWAP v2` is the
-default corrected release with the 2 bps uncertainty floor and 98% cap. The
+Model releases are immutable and selected when a session starts. `BTC TWAP v2`
+is the default release with the 2 bps uncertainty floor and 98% cap. The
 experimental `BTC Regime Guard v3` keeps V2's probability formula, recommends
 an 87.5% paper threshold, and skips thin-gap rounds when the recent path is
 classified as `choppy_up`.
@@ -69,10 +68,10 @@ visible for comparison and never place that session's orders.
 
 Each paper session also sets the trade-size percentage for a thin-gap warning
 and for a movement-disagreement warning. Set either percentage to `0` to skip
-that type of single-warning trade. If both warnings occur together, the paper
-trader always skips the entry under V1 and V2. V3 instead always skips a thin
-gap combined with the `choppy_up` regime. These settings can be edited while the session
-is running.
+that type of single-warning trade. If both warnings occur together, V2 always
+skips the entry. V3 instead skips a thin gap combined with the `choppy_up`
+regime, while V4 applies both close-to-line guards. These settings can be
+edited while the session is running.
 
 Serve existing history without live collection:
 

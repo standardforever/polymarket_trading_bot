@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from bot.models import (COMBINED_MODEL, CORRECTED_MODEL, LEGACY_MODEL, REGIME_MODEL,
+from bot.models import (COMBINED_MODEL, CORRECTED_MODEL, REGIME_MODEL,
                         model_release, probability_snapshot)
 from bot.paper import PaperTrader
 
@@ -17,14 +17,12 @@ def quiet_components(gap=1.19, raw_sigma=.5):
 
 
 class ModelReleaseTests(unittest.TestCase):
-    def test_legacy_and_corrected_releases_preserve_their_formulas(self):
+    def test_probability_floor_and_cap_are_applied(self):
         components = quiet_components()
-        legacy = probability_snapshot(components, LEGACY_MODEL)
         corrected = probability_snapshot(components, CORRECTED_MODEL)
-        self.assertGreater(legacy["p_up"], .99)
-        self.assertAlmostEqual(legacy["applied_sigma_bps"], .5)
         self.assertLess(corrected["p_up"], .73)
         self.assertAlmostEqual(corrected["applied_sigma_bps"], 2)
+        self.assertEqual(corrected["probability_cap"], .98)
 
     def test_regime_release_keeps_v2_probability_and_declares_its_threshold(self):
         components = quiet_components()
@@ -38,38 +36,20 @@ class ModelReleaseTests(unittest.TestCase):
         combined = probability_snapshot(components, COMBINED_MODEL)
         self.assertEqual(combined, {**corrected, "model_version": COMBINED_MODEL})
 
-    def test_session_uses_its_selected_release(self):
-        with tempfile.TemporaryDirectory() as folder:
-            data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
-            trader = PaperTrader(data, 50, model_version=LEGACY_MODEL)
-            trader.add_signal({
-                "slug": "btc-updown-5m-100", "start": 100,
-                "decision_ms": 280_000, "direction": "SKIP",
-                "p_up": .72, "p_down": .28, "fee_rate": .07,
-                "components": quiet_components(),
-                "agreement": {"movement": "Up"},
-                "quotes": {"Up": {"ask": ".80"}},
-            })
-            candidate = trader.candidates["btc-updown-5m-100"]
-            self.assertEqual(candidate["model_version"], LEGACY_MODEL)
-            self.assertGreater(candidate["chance"], .99)
-            trader.close()
-
     def test_session_enforces_selected_models_complete_market_decision(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
             (data / "stage4-round-history.jsonl").write_text("")
-            trader = PaperTrader(data, 50, model_version=LEGACY_MODEL)
+            trader = PaperTrader(data, 50, model_version=CORRECTED_MODEL)
             slug = "btc-updown-5m-100"
             trader.add_signal({
                 "slug": slug, "start": 100, "decision_ms": 280_000,
                 "direction": "Up", "p_up": .95, "p_down": .05,
                 "fee_rate": .07, "quotes": {"Up": {"ask": ".80"}},
                 "model_outputs": {
-                    LEGACY_MODEL: {
-                        "model_version": LEGACY_MODEL, "p_up": .99,
-                        "p_down": .01, "side": "Up", "chance": .99,
+                    CORRECTED_MODEL: {
+                        "model_version": CORRECTED_MODEL, "p_up": .95,
+                        "p_down": .05, "side": "Up", "chance": .95,
                         "direction": "SKIP", "reason": "analytic_disagreement:market",
                         "agreement": {"market": "Down", "movement": "Up"},
                         "warnings": [],

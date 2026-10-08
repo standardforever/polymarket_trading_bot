@@ -1,4 +1,4 @@
-# BTC model formulas (V1-V4)
+# BTC model formulas (V2-V4)
 
 This file describes the formulas currently implemented in `bot/models.py`,
 `bot/prediction.py`, and `bot/paper.py`. These are analytic estimates, not a
@@ -44,7 +44,7 @@ The extra `20` is `60 / 3`, the variance contribution of averaging prices over
 the final 60-second window. Around 120 seconds remaining,
 `effective_seconds = 80`.
 
-Each version then calculates:
+All current models then calculate:
 
 ```text
 z      = clamp(spot_gap_bps / applied_sigma_bps, -8, +8)
@@ -79,20 +79,9 @@ separate trade gate.
 
 | Version | Probability | Default confidence | Hard close-to-line rule |
 |---|---|---:|---|
-| **V1 — BTC TWAP v1** | Raw sigma; no probability cap | 90% | Thin spot gap **and** movement disagreement |
 | **V2 — BTC TWAP v2** | Sigma floor of 2 bps; probability capped at 2%-98% | 90% | Thin spot gap **and** movement disagreement |
 | **V3 — BTC Regime Guard v3** | Same as V2 | 87.5% | Thin spot gap **and** `choppy_up` regime |
 | **V4 — BTC Dual Guard v4** | Same as V2 | 90% | Thin conservative gap **and** (movement disagreement **or** `choppy_up`) |
-
-### V1
-
-```text
-applied_sigma_bps = raw_sigma_bps
-p_up = normal_CDF(spot_gap_bps / raw_sigma_bps)
-```
-
-V1 can become extremely confident during a quiet period because sigma may be
-very small. It does not cap the resulting probability.
 
 ### V2
 

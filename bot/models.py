@@ -4,7 +4,6 @@ import math
 from statistics import NormalDist
 
 
-LEGACY_MODEL = "btc_twap_v1"
 CORRECTED_MODEL = "btc_twap_v2"
 REGIME_MODEL = "btc_regime_v3"
 COMBINED_MODEL = "btc_guard_v4"
@@ -12,20 +11,9 @@ DEFAULT_MODEL = CORRECTED_MODEL
 
 MODEL_RELEASES = (
     {
-        "id": LEGACY_MODEL,
-        "name": "BTC TWAP v1",
-        "description": "Legacy raw-volatility formula without a sigma floor or probability cap.",
-        "legacy": True,
-        "default": False,
-        "experimental": False,
-        "recommended_confidence": .90,
-        "risk_rule": "thin_gap_and_movement_disagreement",
-    },
-    {
         "id": CORRECTED_MODEL,
         "name": "BTC TWAP v2",
         "description": "Corrected formula with a 2 bps uncertainty floor and 98% probability cap.",
-        "legacy": False,
         "default": True,
         "experimental": False,
         "recommended_confidence": .90,
@@ -36,7 +24,6 @@ MODEL_RELEASES = (
         "name": "BTC Regime Guard v3",
         "description": ("Experimental V2 probability with a regime-aware close-to-line guard; "
                         "recommended paper threshold 87.5%."),
-        "legacy": False,
         "default": False,
         "experimental": True,
         "recommended_confidence": .875,
@@ -47,7 +34,6 @@ MODEL_RELEASES = (
         "name": "BTC Dual Guard v4",
         "description": ("Experimental V2 probability with both close-to-line guards, "
                         "a conservative spot-or-TWAP gap, and a 90% threshold."),
-        "legacy": False,
         "default": False,
         "experimental": True,
         "recommended_confidence": .90,
@@ -84,14 +70,11 @@ def probability_snapshot(component_rows, model_version=DEFAULT_MODEL):
     volatility = float(movement["volatility_120"])
     effective_seconds = max(remaining - 60.0, 0.0) + 20.0
     raw_sigma = max(volatility * math.sqrt(effective_seconds), .1)
-    applied_sigma = raw_sigma if model_version == LEGACY_MODEL else max(raw_sigma, 2.0)
+    applied_sigma = max(raw_sigma, 2.0)
     z_score = max(-8.0, min(8.0, gap / applied_sigma))
     probability_before_cap = NormalDist().cdf(z_score)
-    p_up = probability_before_cap
-    probability_cap = None
-    if model_version != LEGACY_MODEL:
-        probability_cap = .98
-        p_up = max(1 - probability_cap, min(probability_cap, p_up))
+    probability_cap = .98
+    p_up = max(1 - probability_cap, min(probability_cap, probability_before_cap))
     side = "Up" if p_up >= .5 else "Down"
     chance = p_up if side == "Up" else 1 - p_up
     return {

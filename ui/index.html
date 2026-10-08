@@ -209,9 +209,9 @@
       <section class="view" id="modelRaceView">
         <div class="race-control-layout">
           <article class="card race-launch-card">
-            <div class="card-head"><div><span class="label">ISOLATED PAPER LAB</span><h2>Start all four models together</h2><p>Each model receives the same starting bankroll, then compounds independently using its own confidence and risk rules.</p></div><span class="pill muted" id="modelRaceStatus">READY</span></div>
+            <div class="card-head"><div><span class="label">ISOLATED PAPER LAB</span><h2>Start all models together</h2><p>Each model receives the same starting bankroll, then compounds independently using its own confidence and risk rules.</p></div><span class="pill muted" id="modelRaceStatus">READY</span></div>
             <form id="modelRaceForm" class="session-form">
-              <label class="full"><span>Race name</span><input name="name" maxlength="60" placeholder="Four-model comparison"></label>
+              <label class="full"><span>Race name</span><input name="name" maxlength="60" placeholder="Model comparison"></label>
               <label><span>Money for each model</span><div class="input-unit"><i>$</i><input name="starting_bankroll" type="number" min="1" step="0.01" value="100" required></div></label>
               <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" value="20" required><i>%</i></div></label>
               <label><span>Maximum per trade <small>Optional cap for every model</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>

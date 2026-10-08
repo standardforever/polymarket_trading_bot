@@ -4,7 +4,7 @@ import math
 from collections import deque
 from statistics import NormalDist
 
-from .models import (COMBINED_MODEL, CORRECTED_MODEL, DEFAULT_MODEL, LEGACY_MODEL,
+from .models import (COMBINED_MODEL, CORRECTED_MODEL, DEFAULT_MODEL,
                      REGIME_MODEL, model_release,
                      model_releases, probability_releases, probability_snapshot)
 from .trading import (MINIMUM_EDGE, MINIMUM_SHARES, healthy_book,
@@ -92,9 +92,8 @@ def analytic_signal(component_rows, quotes, taker_fee_rate,
     else:  # Compatibility for incomplete historical and unit-test snapshots.
         z_score = max(-8.0, min(8.0, settlement["gap_over_expected_move"]))
         probability_before_cap = NormalDist().cdf(z_score)
-        probability_cap = ANALYTIC_MAX_PROBABILITY if model_version != LEGACY_MODEL else None
-        p_up = (max(1 - probability_cap, min(probability_cap, probability_before_cap))
-                if probability_cap is not None else probability_before_cap)
+        probability_cap = ANALYTIC_MAX_PROBABILITY
+        p_up = max(1 - probability_cap, min(probability_cap, probability_before_cap))
     side_sign = 1 if p_up >= .5 else -1
     side = "Up" if side_sign > 0 else "Down"
     chance = p_up if side == "Up" else 1 - p_up
