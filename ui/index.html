@@ -151,7 +151,7 @@
 
       <section class="view" id="historyView">
         <article class="card table-card">
-          <div class="table-tools"><div><span class="label">ALL EVALUATED ROUNDS</span><h2>Prediction history</h2></div><div class="filters"><select id="resultFilter"><option value="">All results</option><option>WIN</option><option>LOSS</option><option>SKIP</option><option>PENDING</option></select><select id="predictionFilter"><option value="">All predictions</option><option>Up</option><option>Down</option><option>SKIP</option></select><select id="tradedFilter"><option value="">All rounds</option><option value="true">Traded</option><option value="false">Not traded</option></select></div></div>
+          <div class="table-tools"><div><span class="label">ALL EVALUATED ROUNDS</span><h2>Prediction history</h2></div><div class="filters"><select id="resultFilter"><option value="">All results</option><option>WIN</option><option>LOSS</option><option>SKIP</option><option>PENDING</option></select><select id="predictionFilter"><option value="">All predictions</option><option>Up</option><option>Down</option><option>SKIP</option></select><select id="tradedFilter"><option value="">All rounds</option><option value="true">Traded</option><option value="false">Not traded</option></select><select class="hidden" id="tradeModeFilter"><option value="">All trade modes</option><option value="real">Real-money trades</option><option value="paper">Paper trades</option></select></div></div>
           <div class="table-scroll"><table><thead><tr><th>Round</th><th>Decision</th><th>Confidence</th><th>Polymarket</th><th>Actual</th><th>Result</th><th>Edge</th><th>Trade</th></tr></thead><tbody id="historyBody"></tbody></table></div>
           <div class="empty-state hidden" id="historyEmpty">No rounds match these filters.</div>
           <div class="pagination" id="historyPagination"><button class="secondary-button" id="historyPrevious">Previous</button><span id="historyPageInfo">Page 1</span><button class="secondary-button" id="historyNext">Next</button></div>
@@ -245,6 +245,6 @@
   </dialog>
   <div class="toast" id="toast"></div>
   <script src="config.js"></script>
-  <script type="module" src="app.js?v=20261008-single-strategy"></script>
+  <script type="module" src="app.js?v=20261008-history-filters"></script>
 </body>
 </html>

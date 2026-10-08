@@ -188,7 +188,8 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
     def rounds(limit: int = Query(50, ge=1, le=1000), offset: int = Query(0, ge=0),
                result: Literal["WIN", "LOSS", "SKIP", "PENDING"] | None = None,
                prediction: Literal["Up", "Down", "SKIP"] | None = None,
-               traded: bool | None = None):
+               traded: bool | None = None,
+               trade_mode: Literal["paper", "real"] | None = None):
         rows = repository.rounds()
         if result is not None:
             rows = [row for row in rows if row["result"] == result]
@@ -196,6 +197,8 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
             rows = [row for row in rows if row["prediction"] == prediction]
         if traded is not None:
             rows = [row for row in rows if row["traded"] is traded]
+        if trade_mode is not None:
+            rows = [row for row in rows if trade_mode in row["trade_modes"]]
         return {"total": len(rows), "offset": offset, "limit": limit,
                 "items": rows[offset:offset + limit]}
 

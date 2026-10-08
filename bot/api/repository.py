@@ -68,6 +68,7 @@ class BotRepository:
             "live_trading": False,
             "manual_orders": False,
             "live_websocket": True,
+            "round_trade_mode_filter": True,
         }
 
     def health(self):
@@ -285,6 +286,8 @@ class BotRepository:
                            decision.get("p_down") if prediction == "Down" else
                            max((decision.get("p_up") or 0), (decision.get("p_down") or 0)))
             round_trades = trades_by_slug.get(decision["slug"], [])
+            trade_modes = sorted({trade.get("mode") for trade in round_trades
+                                  if trade.get("mode") in ("paper", "real")})
             components = decision.get("components") or {}
             market_component = components.get("market") or {}
             quotes = decision.get("quotes") or {}
@@ -299,6 +302,7 @@ class BotRepository:
                 "market_down_ask": down_quote.get("ask"),
                 "warnings": decision.get("warnings") or [], "actual": actual,
                 "result": result, "traded": decision["slug"] in traded,
+                "trade_modes": trade_modes,
                 "estimated_edge": decision.get("estimated_edge"),
                 "distance_to_beat": decision.get("distance_to_beat"),
                 "distance_source": decision.get("distance_source"),

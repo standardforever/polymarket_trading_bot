@@ -536,13 +536,17 @@ async function loadRounds() {
   if ($("resultFilter").value) query.set("result", $("resultFilter").value);
   if ($("predictionFilter").value) query.set("prediction", $("predictionFilter").value);
   if ($("tradedFilter").value) query.set("traded", $("tradedFilter").value);
+  if ($("tradeModeFilter").value) query.set("trade_mode", $("tradeModeFilter").value);
   const result = await request(`/api/v1/rounds?${query}`);
   state.rounds = result.items;
   Object.assign(page, { total: result.total, offset: result.offset, limit: result.limit });
   $("historyBody").innerHTML = state.rounds.map(row => {
     const confidence = row.prediction === "Up" ? row.p_up : row.prediction === "Down" ? row.p_down : Math.max(Number(row.p_up || 0), Number(row.p_down || 0));
     const market = `Up ${fmt.cents(row.market_up_ask)} · Down ${fmt.cents(row.market_down_ask)}`;
-    return `<tr data-slug="${row.slug}"><td><b>${fmt.date(row.start)}</b><br><small class="mono">${row.slug.replace("btc-updown-5m-", "#")}</small></td><td class="${sideClass(row.prediction)}"><b>${row.prediction}</b></td><td class="mono">${fmt.percent(confidence)}</td><td class="mono">${market}</td><td>${row.actual || "—"}</td><td>${badge(row.result)}</td><td class="mono">${fmt.percent(row.estimated_edge)}</td><td>${row.traded ? "Yes" : "No"}</td></tr>`;
+    const tradeLabel = row.trade_modes?.length
+      ? row.trade_modes.map(mode => mode === "real" ? "Real" : "Paper").join(" + ")
+      : row.traded ? "Yes" : "No";
+    return `<tr data-slug="${row.slug}"><td><b>${fmt.date(row.start)}</b><br><small class="mono">${row.slug.replace("btc-updown-5m-", "#")}</small></td><td class="${sideClass(row.prediction)}"><b>${row.prediction}</b></td><td class="mono">${fmt.percent(confidence)}</td><td class="mono">${market}</td><td>${row.actual || "—"}</td><td>${badge(row.result)}</td><td class="mono">${fmt.percent(row.estimated_edge)}</td><td>${tradeLabel}</td></tr>`;
   }).join("");
   $("historyEmpty").classList.toggle("hidden", state.rounds.length > 0);
   renderPagination("history");
@@ -981,6 +985,9 @@ async function refresh() {
   try {
     const [dashboard, chart, health, account] = await Promise.all([request("/api/v1/dashboard"), request("/api/v1/live/chart"), request("/health"), request("/api/v1/account")]);
     state.dashboard = dashboard; state.live = dashboard.live; state.chart = chart; state.health = health; state.account = account;
+    const supportsTradeMode = Boolean(dashboard.capabilities?.round_trade_mode_filter);
+    $("tradeModeFilter").classList.toggle("hidden", !supportsTradeMode);
+    if (!supportsTradeMode) $("tradeModeFilter").value = "";
     $("collectorStatus").textContent = health.collector.fresh ? "Live" : health.collector.available ? "Stale" : "Offline";
     $("collectorStatus").className = health.collector.fresh ? "positive" : "negative";
     renderLive(); renderCharts(); renderStatistics(); renderAccount();
@@ -1066,7 +1073,7 @@ function changeView(name) {
 }
 
 document.querySelectorAll(".nav-item").forEach(button => button.addEventListener("click", () => changeView(button.dataset.view)));
-[$("resultFilter"), $("predictionFilter"), $("tradedFilter")].forEach(input => input.addEventListener("change", () => {
+[$("resultFilter"), $("predictionFilter"), $("tradedFilter"), $("tradeModeFilter")].forEach(input => input.addEventListener("change", () => {
   state.pages.history.offset = 0;
   loadRounds().catch(e => toast(e.message));
 }));

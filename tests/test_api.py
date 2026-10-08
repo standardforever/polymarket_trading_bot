@@ -61,6 +61,17 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(wins["items"][0]["market_p_up"], .885)
         self.assertEqual(wins["items"][0]["market_up_ask"], ".89")
         self.assertEqual(wins["items"][0]["market_down_ask"], ".12")
+        self.assertEqual(wins["items"][0]["trade_modes"], ["paper"])
+        combined = self.client.get("/api/v1/rounds", params={
+            "result": "WIN", "prediction": "Up", "traded": True,
+            "trade_mode": "paper",
+        }).json()
+        self.assertEqual(combined["total"], 1)
+        excluded = self.client.get("/api/v1/rounds", params={
+            "result": "WIN", "prediction": "Down", "traded": True,
+            "trade_mode": "paper",
+        }).json()
+        self.assertEqual(excluded["total"], 0)
 
     def test_real_trade_history_repairs_lagging_balance_delta_from_exchange_fill(self):
         folder = self.data / "real-trading" / "sessions"
@@ -99,6 +110,11 @@ class ApiTests(unittest.TestCase):
         self.assertAlmostEqual(
             session["status_detail"]["available_bankroll"],
             12.003471 - corrected_cost)
+        real_rounds = self.client.get("/api/v1/rounds", params={
+            "traded": True, "trade_mode": "real",
+        }).json()
+        self.assertEqual(real_rounds["total"], 1)
+        self.assertEqual(real_rounds["items"][0]["trade_modes"], ["paper", "real"])
         skipped = self.client.get("/api/v1/rounds", params={"result": "SKIP"}).json()
         self.assertEqual(skipped["total"], 1)
         page = self.client.get("/api/v1/rounds", params={
