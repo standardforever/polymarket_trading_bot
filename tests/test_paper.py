@@ -448,6 +448,31 @@ class PaperTraderTests(unittest.TestCase):
             self.assertEqual(trader.trade_count, 1)
             self.assertEqual(trader.wins, 1)
             self.assertAlmostEqual(trader.realized_profit, 2.36)
+            self.assertEqual(trader.bankroll, 40)
+            trader.close()
+
+    def test_real_position_outcome_requires_market_end_and_final_price(self):
+        up = {"outcome": "Up", "current_price": "1", "redeemable": True}
+        down = {"outcome": "Up", "current_price": "0", "redeemable": False}
+        slug = "btc-updown-5m-100"
+        self.assertIsNone(RealTrader._position_outcome(slug, up, 399))
+        self.assertEqual(RealTrader._position_outcome(slug, up, 400), "Up")
+        self.assertEqual(RealTrader._position_outcome(slug, down, 400), "Down")
+        self.assertIsNone(RealTrader._position_outcome(
+            slug, {"outcome": "Up", "current_price": ".99"}, 400))
+
+    def test_real_trader_syncs_spendable_cash_from_account(self):
+        class Account:
+            @staticmethod
+            def snapshot(force=False):
+                return {"connected": True, "balance_usdc": "12.34", "positions": []}
+
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            (data / "round-history.jsonl").write_text("")
+            trader = RealTrader(data, Account(), 50)
+            trader._resolve_from_account()
+            self.assertEqual(trader.bankroll, 12.34)
             trader.close()
 
     def test_paper_resume_restores_an_open_position(self):

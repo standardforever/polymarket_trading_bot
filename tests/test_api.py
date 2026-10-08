@@ -250,6 +250,10 @@ class ApiTests(unittest.TestCase):
         self.assertFalse(session["paper_only"])
         self.assertEqual(session["configuration"]["starting_bankroll"], 37.5)
         self.assertEqual(session["configuration"]["planned_first_trade_budget"], 5)
+        detail = client.get(
+            f"/api/v1/trading/sessions/{session['session_id']}").json()
+        self.assertEqual(detail["status_detail"]["available_bankroll"], 37.5)
+        self.assertEqual(detail["status_detail"]["balance_source"], "account_api")
         client.post(f"/api/v1/trading/sessions/{session['session_id']}/stop")
         manager.shutdown()
 

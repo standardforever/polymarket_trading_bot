@@ -36,7 +36,8 @@ and optional trade-count, profit, and loss limits. Each session keeps its own
 configuration, status, trades, and event log. Turning a session off cancels
 unfilled candidates; filled positions stay open until the market resolves.
 Real mode reads the connected account's current USDC before activation and
-again before every order. Once activated, qualified entries use bounded
+keeps the active session's available cash synchronized with the authenticated
+account feed. Once activated, qualified entries use bounded
 fill-or-kill orders without a per-trade confirmation. Paper mode never submits
 an exchange order. Non-zero warning allocations are raised to Polymarket's $1
 market-buy minimum when the account and per-trade cap can fund it. The official
@@ -49,6 +50,12 @@ a lightweight collateral check, and an immediate exchange-enforced FOK order at
 the strategy's maximum price. It does not repeat the full account snapshot or make
 a separate price-estimate request. Explicit FOK no-fills remain candidates and
 retry at most once per second until the configured entry cutoff.
+
+After a real market ends, an account position at its final 0 or 1 price can
+update the trade result before the slower collector settlement arrives.
+Redeemable winnings remain position value and are not counted as available
+cash until Polymarket reports them in the USDC balance. The bot does not redeem
+positions automatically.
 
 The bot uses one probability calculation with a 2 bps uncertainty floor and a
 98% probability cap. Its fixed safeguards use the smaller of the spot and TWAP

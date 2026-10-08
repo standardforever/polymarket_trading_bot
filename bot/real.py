@@ -1,5 +1,6 @@
 """Activated autonomous real-money execution for qualified BTC signals."""
 
+import time
 from decimal import Decimal, ROUND_FLOOR
 
 from .account import AutomaticOrderSubmissionError
@@ -22,6 +23,57 @@ class RealTrader(PaperTrader):
             raise ValueError(snapshot.get("error") or
                              "The Polymarket account is not connected")
         return float(snapshot.get("balance_usdc") or 0)
+
+    def settlement_available_bankroll(self, calculated_bankroll):
+        """Use actual USDC cash; resolved winnings remain unavailable until redeemed."""
+        try:
+            return self._available_cash(force=True)
+        except (TypeError, ValueError):
+            return calculated_bankroll
+
+    @staticmethod
+    def _position_outcome(slug, position, now_seconds):
+        """Infer a final binary outcome from an ended account position at 0 or 1."""
+        try:
+            market_end = int(str(slug).rsplit("-", 1)[1]) + 300
+            price = float(position.get("current_price"))
+        except (TypeError, ValueError, IndexError):
+            return None
+        if now_seconds < market_end:
+            return None
+        outcome = position.get("outcome")
+        if outcome not in ("Up", "Down"):
+            return None
+        if position.get("redeemable") is True or price >= .999:
+            return outcome
+        if price <= .001:
+            return "Down" if outcome == "Up" else "Up"
+        return None
+
+    def _resolve_from_account(self):
+        snapshot = self.account.snapshot()
+        if not snapshot.get("connected"):
+            return
+        if snapshot.get("balance_usdc") is not None:
+            self.bankroll = float(snapshot["balance_usdc"])
+        if not self.positions:
+            return
+        account_positions = snapshot.get("positions") or []
+        now_seconds = time.time()
+        for slug, position in list(self.positions.items()):
+            account_position = next((row for row in account_positions
+                                     if row.get("slug") == slug
+                                     and row.get("outcome") == position.get("side")), None)
+            if account_position is None:
+                continue
+            actual = self._position_outcome(slug, account_position, now_seconds)
+            if actual is not None:
+                self.resolve({"slug": slug, "actual_result": actual,
+                              "resolution_source": "account_position"})
+
+    def process_history(self, accept_signals=True):
+        super().process_history(accept_signals=accept_signals)
+        self._resolve_from_account()
 
     def consider_quotes(self, candidate, record):
         observed_ms = int(record.get("received_ms", 0))

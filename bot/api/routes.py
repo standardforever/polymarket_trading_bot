@@ -142,7 +142,7 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
                paper_sessions: PaperSessionManager | None = None,
                account: PolymarketAccount | None = None) -> FastAPI:
     data = Path(data_dir)
-    repository = BotRepository(data)
+    repository = BotRepository(data, account=account)
     app = FastAPI(title="BTC 5-Minute Agent API", version="1.0.0")
     app.add_middleware(CORSMiddleware, allow_origins=[
                            "http://localhost:3000", "http://127.0.0.1:3000",

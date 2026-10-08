@@ -5,6 +5,9 @@ import time
 from collections import deque
 from pathlib import Path
 
+
+TERMINAL_STATUSES = {"STOPPED", "COMPLETED", "GAME_OVER"}
+
 def _clean_event(row):
     if not isinstance(row, dict):
         return row
@@ -35,8 +38,9 @@ def _jsonl(path: Path):
 
 
 class BotRepository:
-    def __init__(self, data: Path):
+    def __init__(self, data: Path, account=None):
         self.data = data
+        self.account = account
         self.history_path = data / "round-history.jsonl"
         self.paper_folder = data / "paper-trading"
         self.real_folder = data / "real-trading" / "sessions"
@@ -200,6 +204,11 @@ class BotRepository:
                             starting * .8 if starting > 20 else starting),
                     },
                 }
+        live_cash = None
+        if mode == "real" and self.account is not None:
+            snapshot = self.account.snapshot()
+            if snapshot.get("connected") and snapshot.get("balance_usdc") is not None:
+                live_cash = float(snapshot["balance_usdc"])
         for metadata in metadata_by_id.values():
             metadata = dict(metadata)
             metadata["configuration"] = dict(metadata.get("configuration") or {})
@@ -216,8 +225,14 @@ class BotRepository:
                 open_cost = sum(float(row.get("cost") or 0) for row in session_trades
                                 if row.get("status") == "OPEN")
                 status = dict(status)
-                status["available_bankroll"] = max(
-                    0.0, starting + realized_profit - open_cost)
+                reconstructed_cash = max(0.0, starting + realized_profit - open_cost)
+                if (live_cash is not None
+                        and status.get("status") not in TERMINAL_STATUSES):
+                    status["available_bankroll"] = live_cash
+                    status["balance_source"] = "account_api"
+                else:
+                    status["available_bankroll"] = reconstructed_cash
+                    status["balance_source"] = "session_ledger"
                 status["realized_profit"] = realized_profit
             sessions.append({
                 **metadata,

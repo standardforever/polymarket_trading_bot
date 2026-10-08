@@ -584,6 +584,31 @@ function activeSession() {
     || state.activeSessionSummary || null;
 }
 
+function sessionAvailable(session) {
+  const active = activeSession();
+  const liveCash = Number(state.account?.balance_usdc);
+  if (session?.mode === "real" && session?.session_id === active?.session_id
+      && state.account?.connected && Number.isFinite(liveCash)) return liveCash;
+  return session?.status_detail?.available_bankroll;
+}
+
+function liveTradeState(trade, session) {
+  if (session?.mode !== "real" || trade.status !== "OPEN") return trade;
+  const position = (state.account?.positions || []).find(row =>
+    row.slug === trade.slug && row.outcome === trade.side);
+  const start = Number(String(trade.slug || "").split("-").at(-1));
+  const price = Number(position?.current_price);
+  if (!position || !Number.isFinite(start) || Date.now() / 1000 < start + 300
+      || !Number.isFinite(price)) return trade;
+  let won = null;
+  if (position.redeemable === true || price >= .999) won = true;
+  else if (price <= .001) won = false;
+  if (won == null) return trade;
+  return { ...trade, status: won ? "WIN" : "LOSS",
+    profit: won ? Number(trade.shares || 0) - Number(trade.cost || 0)
+      : -Number(trade.cost || 0), liveSettlement: true };
+}
+
 function renderPaperControl() {
   const runtime = Boolean(state.dashboard?.capabilities?.paper_session_runtime);
   const active = activeSession();
@@ -597,21 +622,21 @@ function renderPaperControl() {
   $("autoTradingCopy").textContent = !runtime
     ? "Trading sessions require the collector runtime."
     : active
-      ? `${mode.toUpperCase()} · ${active.name} · ${fmt.usd(active.status_detail?.available_bankroll)} available · entries stop at ${fmt.num(active.configuration.entry_cutoff_seconds, 0)} seconds.`
+      ? `${mode.toUpperCase()} · ${active.name} · ${fmt.usd(sessionAvailable(active))} available cash · entries stop at ${fmt.num(active.configuration.entry_cutoff_seconds, 0)} seconds.`
       : "Create a paper or real session, set its balance-based limits, then let the bot monitor entries.";
 }
 
 function renderSessionList() {
   state.sessions.sort((a, b) => Number(b.created_ms || 0) - Number(a.created_ms || 0));
   $("sessionsEmpty").classList.toggle("hidden", state.sessions.length > 0);
-  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${String(session.mode || "paper").toUpperCase()} · ${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>BALANCE<b>${fmt.usd(session.status_detail?.available_bankroll)}</b></span><span>TRADES<b>${session.trade_count}</b></span><span>P&amp;L<b class="${session.realized_profit >= 0 ? "positive" : "negative"}">${fmt.usd(session.realized_profit)}</b></span></div></button>`).join("");
+  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${String(session.mode || "paper").toUpperCase()} · ${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>CASH<b>${fmt.usd(sessionAvailable(session))}</b></span><span>TRADES<b>${session.trade_count}</b></span><span>P&amp;L<b class="${session.realized_profit >= 0 ? "positive" : "negative"}">${fmt.usd(session.realized_profit)}</b></span></div></button>`).join("");
   document.querySelectorAll(".session-item").forEach(button => button.addEventListener("click", () => selectPaperSession(button.dataset.sessionId)));
   renderPaperControl();
 }
 
 function renderSessionDetail() {
   const session = state.sessionDetail;
-  const trades = session?.trades || [];
+  const trades = (session?.trades || []).map(row => liveTradeState(row, session));
   state.trades = trades;
   if (!session) {
     $("sessionLedgerTitle").textContent = "Select a session";
@@ -627,7 +652,7 @@ function renderSessionDetail() {
     const allocationRule = session.legacy ? "legacy 80% / below-$20 rule" : `${fmt.percent(config.allocation_fraction, 0)} of balance per trade`;
     const riskRules = session.legacy ? "legacy risk sizing" : `thin gap ${fmt.percent(config.thin_gap_allocation_fraction ?? .25, 0)} · movement warning ${fmt.percent(config.movement_disagreement_allocation_fraction ?? .5, 0)} · ${riskRuleText().session}`;
     $("sessionRules").textContent = `${String(session.mode || "paper").toUpperCase()} · ${fmt.percent(config.model_threshold)} confidence · ${fmt.percent(config.minimum_edge)} edge · ${allocationRule} · ${riskRules} · stop entries at ${fmt.num(config.entry_cutoff_seconds, 0)}s · ${stopRules.join(" · ")}`;
-    const values = [["Starting", fmt.usd(config.starting_bankroll)], ["Available", fmt.usd(session.status_detail?.available_bankroll)], ["Trades", session.trade_count], ["Wins / losses", `${session.wins} / ${session.losses}`], ["Realized P&L", fmt.usd(session.realized_profit)]];
+    const values = [["Starting", fmt.usd(config.starting_bankroll)], ["Available cash", fmt.usd(sessionAvailable(session))], ["Trades", session.trade_count], ["Wins / losses", `${session.wins} / ${session.losses}`], ["Realized P&L", fmt.usd(session.realized_profit)]];
     $("tradeMetrics").innerHTML = values.map(([label,value]) => `<div class="metric"><span>${label}</span><b>${value}</b></div>`).join("");
     const editable = activeSession()?.session_id === session.session_id && !isTerminalSession(session);
     $("editSessionButton").classList.toggle("hidden", !editable);
@@ -1049,6 +1074,8 @@ function connectSockets() {
   accountSocket.onmessage = event => {
     state.account = JSON.parse(event.data);
     renderAccount();
+    renderSessionList();
+    renderSessionDetail();
     if ($("paperSessionDialog").open && $("paperSessionForm").elements.mode.value === "real") {
       syncSessionMode();
     }

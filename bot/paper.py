@@ -555,6 +555,7 @@ class PaperTrader:
             return
         result = settle_fill(position["fill"], position["side"], actual)
         self.bankroll += result["payout"]
+        self.bankroll = self.settlement_available_bankroll(self.bankroll)
         self.realized_profit += result["profit"]
         self.wins += int(result["won"])
         self.losses += int(not result["won"])
@@ -564,6 +565,7 @@ class PaperTrader:
                    shares=position["fill"]["shares"], fee=position["fill"]["fee"],
                    trade_cost=position["fill"]["cost"], payout=result["payout"],
                    profit=result["profit"], bankroll=self.bankroll,
+                   resolution_source=row.get("resolution_source", "collector"),
                    opening_price=row.get("opening_price"), final_price=row.get("final_price"))
         print(f"{self.execution_mode.upper()} {'WIN' if result['won'] else 'LOSS'} {slug}: "
               f"profit ${result['profit']:.2f}; bankroll ${self.bankroll:.2f}", flush=True)
@@ -587,6 +589,10 @@ class PaperTrader:
             self.write_status("WAITING_FOR_SIGNAL", last_slug=slug,
                               last_result="WIN" if result["won"] else "LOSS",
                               last_trade_profit=round(result["profit"], 6))
+
+    def settlement_available_bankroll(self, calculated_bankroll):
+        """Return spendable cash after settlement; paper payouts are immediate."""
+        return calculated_bankroll
 
     def process_history(self, accept_signals=True):
         for row in self.history.read():
