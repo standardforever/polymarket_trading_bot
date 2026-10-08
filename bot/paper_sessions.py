@@ -58,7 +58,7 @@ class PaperSessionManager:
 
     def _resolution_map(self):
         resolutions = {}
-        for path in self.data.glob("stage4-round-history*.jsonl"):
+        for path in self.data.glob("round-history.jsonl"):
             try:
                 lines = path.read_text().splitlines()
             except OSError:

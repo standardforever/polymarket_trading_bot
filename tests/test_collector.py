@@ -14,9 +14,9 @@ class CollectorTests(unittest.TestCase):
     def test_human_readable_status_is_replaced_atomically(self):
         with tempfile.TemporaryDirectory() as folder:
             recorder = Recorder(Path(folder))
-            recorder.write_status("stage4-live-status.json", status="WAITING", remaining_seconds=150)
-            recorder.write_status("stage4-live-status.json", status="SKIP", reason="test")
-            status = json.loads((Path(folder) / "stage4-live-status.json").read_text())
+            recorder.write_status("live-status.json", status="WAITING", remaining_seconds=150)
+            recorder.write_status("live-status.json", status="SKIP", reason="test")
+            status = json.loads((Path(folder) / "live-status.json").read_text())
             recorder.file.close()
         self.assertEqual(status["status"], "SKIP")
         self.assertEqual(status["reason"], "test")
@@ -30,7 +30,7 @@ class CollectorTests(unittest.TestCase):
             self.assertTrue(recorder.append_round_history("resolution", "round-1", actual_result="Up"))
             recorder.file.close()
             rows = [json.loads(line) for line in
-                    (Path(folder) / "stage4-round-history.jsonl").read_text().splitlines()]
+                    (Path(folder) / "round-history.jsonl").read_text().splitlines()]
         self.assertEqual(len(rows), 2)
         self.assertEqual(rows[0]["direction"], "Up")
         self.assertEqual(rows[1]["actual_result"], "Up")
@@ -41,7 +41,7 @@ class CollectorTests(unittest.TestCase):
             recorder.round_history = True
             slug = "btc-updown-5m-1790193600"
             recorder.write("market_event", slug=slug, event={"event_type": "book"})
-            self.assertTrue(list((Path(folder) / "stage4-active").glob("*.jsonl")))
+            self.assertTrue(list((Path(folder) / "active-rounds").glob("*.jsonl")))
             recorder.append_round_history("decision", slug, start=1790193600,
                                           direction="Up", components={})
             recorder.append_round_history("entry", slug, delay_seconds=5,
@@ -50,11 +50,11 @@ class CollectorTests(unittest.TestCase):
                                           actual_result="Up")
             recorder.close()
             rows = [json.loads(line) for line in
-                    (Path(folder) / "stage4-round-history.jsonl").read_text().splitlines()]
+                    (Path(folder) / "round-history.jsonl").read_text().splitlines()]
             session = next(Path(folder).glob("session-*.jsonl")).read_text()
         self.assertEqual([row["record_type"] for row in rows],
                          ["decision", "entry", "resolution"])
-        self.assertFalse(list((Path(folder) / "stage4-active").glob("*.jsonl")))
+        self.assertFalse(list((Path(folder) / "active-rounds").glob("*.jsonl")))
         self.assertNotIn("market_event", session)
 
     def test_round_boundary(self):

@@ -5,40 +5,11 @@ import time
 from collections import deque
 from pathlib import Path
 
-from bot.prediction import analytic_signal
-
-
-_LEGACY_DECISION_FIELDS = ("model_version", "model_outputs", "model_probabilities")
-
-
-def _single_decision(row):
-    """Expose one decision and translate old multi-output records on read."""
-    if not row:
-        return row
-    decision = dict(row)
-    is_legacy = any(key in decision for key in _LEGACY_DECISION_FIELDS)
-    for key in _LEGACY_DECISION_FIELDS:
-        decision.pop(key, None)
-    if is_legacy:
-        try:
-            result = analytic_signal(
-                decision.get("components") or {},
-                decision.get("quotes") or {},
-                float(decision.get("fee_rate") or 0),
-            )
-        except (TypeError, ValueError, KeyError):
-            result = None
-        if result:
-            decision.update(result)
-    return decision
-
-
 def _clean_event(row):
     if not isinstance(row, dict):
         return row
     cleaned = dict(row)
-    for key in _LEGACY_DECISION_FIELDS:
-        cleaned.pop(key, None)
+    cleaned.pop("model_version", None)
     return cleaned
 
 
@@ -66,12 +37,12 @@ def _jsonl(path: Path):
 class BotRepository:
     def __init__(self, data: Path):
         self.data = data
-        self.history_path = data / "stage4-round-history.jsonl"
+        self.history_path = data / "round-history.jsonl"
         self.paper_folder = data / "paper-trading"
         self.real_folder = data / "real-trading" / "sessions"
 
     def prediction_status(self):
-        return _single_decision(_json(self.data / "stage4-live-status.json"))
+        return _json(self.data / "live-status.json")
 
     def paper_status(self):
         return _clean_event(_json(self.paper_folder / "latest-status.json"))
@@ -302,7 +273,7 @@ class BotRepository:
         traded = set(trades_by_slug)
         rows = []
         for item in self._round_map().values():
-            decision = _single_decision(item.get("decision"))
+            decision = item.get("decision")
             resolution = item.get("resolution", {})
             if not decision:
                 continue
@@ -342,8 +313,6 @@ class BotRepository:
         if item is None:
             return None
         item = dict(item)
-        if item.get("decision"):
-            item["decision"] = _single_decision(item["decision"])
         item["entries"] = {
             key: _clean_event(value) for key, value in item.get("entries", {}).items()
         }
@@ -369,7 +338,7 @@ class BotRepository:
         }
 
     def _active_file(self):
-        folder = self.data / "stage4-active"
+        folder = self.data / "active-rounds"
         if not folder.exists():
             return None
         prediction = self.prediction_status() or {}

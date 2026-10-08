@@ -150,9 +150,10 @@ and defaults to `http://127.0.0.1:8000`.
 
 Live files remain under `data/` for compatibility with existing history:
 
-- `stage4-live-status.json` — current prediction status
-- `stage4-round-history.jsonl` — decisions and resolved outcomes
-- `stage4-active/` — temporary evidence for unresolved rounds
+- `live-status.json` — current prediction status
+- `round-history.jsonl` — retained-strategy decisions and resolved outcomes
+- `active-rounds/` — temporary evidence for unresolved rounds
+- `archive/legacy-history/` — unchanged history from retired strategies
 - `session-*.jsonl` — session events that are not assigned to a round
 - `paper-trading/` — separate paper-trading logs and status
 - `real-trading/sessions/` — autonomous real-session logs and status

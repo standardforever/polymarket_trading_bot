@@ -3,6 +3,7 @@
 import argparse
 from pathlib import Path
 
+from bot.history import prepare_history
 from bot.runtime import serve
 
 
@@ -16,6 +17,7 @@ def main() -> None:
     args = parser.parse_args()
     if not 1 <= args.port <= 65535:
         parser.error("--port must be between 1 and 65535")
+    prepare_history(args.data)
     serve(args.data, args.host, args.port, args.api_only)
 
 

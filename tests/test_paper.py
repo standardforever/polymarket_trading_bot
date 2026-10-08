@@ -48,7 +48,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_sidecar_reads_future_signal_fills_and_stops_after_all_in_loss(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            history = data / "stage4-round-history.jsonl"
+            history = data / "round-history.jsonl"
             history.write_text("")
             trader = PaperTrader(data, 10, stop_entry_at_remaining=50, poll=.05)
             slug, start, decision_ms = "btc-updown-5m-100", 100, 280_000
@@ -57,7 +57,7 @@ class PaperTraderTests(unittest.TestCase):
                         "fee_rate": .07, "quotes": {"Up": {"ask": ".80"}}}
             with history.open("a") as output:
                 output.write(json.dumps(decision) + "\n")
-            active = data / "stage4-active"
+            active = data / "active-rounds"
             active.mkdir()
             (active / "test-100.jsonl").write_text(json.dumps({
                 "kind": "quotes", "slug": slug, "received_ms": 281_000,
@@ -84,7 +84,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_quotes_after_fifty_seconds_remaining_are_ignored(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            history = data / "stage4-round-history.jsonl"
+            history = data / "round-history.jsonl"
             history.write_text("")
             trader = PaperTrader(data, 50, stop_entry_at_remaining=50, poll=.05)
             slug, start = "btc-updown-5m-100", 100
@@ -92,7 +92,7 @@ class PaperTraderTests(unittest.TestCase):
                 output.write(json.dumps({"record_type": "decision", "slug": slug, "start": start,
                     "decision_ms": 280_000, "direction": "Up", "p_up": .94,
                     "fee_rate": .07, "quotes": {"Up": {"ask": ".80"}}}) + "\n")
-            active = data / "stage4-active"
+            active = data / "active-rounds"
             active.mkdir()
             (active / "test-100.jsonl").write_text(json.dumps({
                 "kind": "quotes", "slug": slug, "received_ms": 351_000,
@@ -107,7 +107,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_skip_becomes_candidate_when_probability_is_at_least_ninety_percent(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 50)
             trader.add_signal({
                 "slug": "btc-updown-5m-100", "start": 100, "decision_ms": 280_000,
@@ -123,7 +123,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_signal_is_ignored_when_probability_is_below_threshold(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 50)
             trader.add_signal({
                 "slug": "btc-updown-5m-100", "start": 100, "decision_ms": 280_000,
@@ -136,7 +136,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_combined_risk_is_rejected_by_paper_trader(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 50)
             slug = "btc-updown-5m-100"
             trader.add_signal({
@@ -157,7 +157,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_single_risk_flag_uses_session_size_rule(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 50, allocation_fraction=.8,
                                  thin_gap_allocation_fraction=.25)
             slug = "btc-updown-5m-100"
@@ -182,7 +182,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_zero_single_risk_size_means_skip(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 50,
                                  movement_disagreement_allocation_fraction=0)
             slug = "btc-updown-5m-100"
@@ -201,7 +201,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_runtime_update_reprices_unfilled_candidate_and_next_budget(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 50, minimum_edge=.03,
                                  stop_entry_at_remaining=30,
                                  allocation_fraction=.8)
@@ -226,7 +226,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_session_loss_limit_stops_after_open_trade_resolves(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 50, allocation_fraction=.5, max_loss_usd=5)
             slug = "btc-updown-5m-100"
             trader.add_signal({
@@ -264,7 +264,7 @@ class PaperTraderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             account = Account()
             trader = RealTrader(data, account, 50, allocation_fraction=.2)
             slug = "btc-updown-5m-100"
@@ -300,7 +300,7 @@ class PaperTraderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = RealTrader(data, Account(), 50, allocation_fraction=.2)
             slug = "btc-updown-5m-100"
             trader.add_signal({
@@ -337,7 +337,7 @@ class PaperTraderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             account = Account()
             trader = RealTrader(data, account, 50, allocation_fraction=.2)
             slug = "btc-updown-5m-100"
@@ -379,7 +379,7 @@ class PaperTraderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             account = Account()
             trader = RealTrader(data, account, 10, allocation_fraction=.2,
                                 thin_gap_allocation_fraction=.25)
@@ -425,7 +425,7 @@ class PaperTraderTests(unittest.TestCase):
 
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             account = Account()
             trader = RealTrader(data, account, 50, allocation_fraction=.2)
             slug = "btc-updown-5m-100"
@@ -453,7 +453,7 @@ class PaperTraderTests(unittest.TestCase):
     def test_paper_resume_restores_an_open_position(self):
         with tempfile.TemporaryDirectory() as folder:
             data = Path(folder)
-            (data / "stage4-round-history.jsonl").write_text("")
+            (data / "round-history.jsonl").write_text("")
             trader = PaperTrader(data, 20, allocation_fraction=.5, run_id="resume-run")
             slug = "btc-updown-5m-100"
             trader.add_signal({

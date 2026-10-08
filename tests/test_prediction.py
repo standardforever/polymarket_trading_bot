@@ -127,7 +127,7 @@ class PredictionTests(unittest.TestCase):
         engine = PredictionEngine(recorder)
         engine.microstructures[market["slug"]] = micro_fixture()
         engine.observe(market, context, history, quotes, NOW)
-        decision = next(row for row in recorder.records if row["kind"] == "stage4_decision")
+        decision = next(row for row in recorder.records if row["kind"] == "strategy_decision")
         self.assertEqual(set(decision["components"]), set(ALL_COMPONENTS))
         self.assertEqual(decision["direction"], "Up")
         self.assertEqual(decision["reason"], "analytic_unvalidated_signal")
@@ -159,7 +159,7 @@ class PredictionTests(unittest.TestCase):
         self.assertNotIn(market["slug"], engine.decisions)
         engine.observe(market, context, history, quotes, NOW + 1000)
         self.assertEqual(engine.decisions[market["slug"]]["decision_ms"], NOW + 1000)
-        decisions = [row for row in recorder.records if row["kind"] == "stage4_decision"]
+        decisions = [row for row in recorder.records if row["kind"] == "strategy_decision"]
         self.assertEqual(len(decisions), 1)
 
     def test_live_engine_freezes_incomplete_snapshot_at_window_close(self):

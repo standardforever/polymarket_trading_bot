@@ -15,7 +15,7 @@ class ApiTests(unittest.TestCase):
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.data = Path(self.temporary.name)
-        (self.data / "stage4-live-status.json").write_text(json.dumps({
+        (self.data / "live-status.json").write_text(json.dumps({
             "updated_ms": 1, "status": "WAITING", "slug": "btc-updown-5m-100"}))
         rows = [
             {"record_type": "decision", "slug": "btc-updown-5m-100", "start": 100,
@@ -30,7 +30,7 @@ class ApiTests(unittest.TestCase):
              "decision_ms": 580_000, "direction": "SKIP", "p_up": .6, "p_down": .4,
              "reason": "analytic_probability_below_90pct", "agreement": {}},
         ]
-        (self.data / "stage4-round-history.jsonl").write_text(
+        (self.data / "round-history.jsonl").write_text(
             "".join(json.dumps(row) + "\n" for row in rows))
         paper = self.data / "paper-trading"
         paper.mkdir()
@@ -312,7 +312,7 @@ class ApiTests(unittest.TestCase):
         self.assertEqual(payload["prediction"]["slug"], "btc-updown-5m-100")
 
     def test_chart_socket_emits_chart_shape(self):
-        active = self.data / "stage4-active"
+        active = self.data / "active-rounds"
         active.mkdir()
         (active / "session-100.jsonl").write_text(json.dumps({
             "kind": "quotes", "slug": "btc-updown-5m-100", "received_ms": 250_000,

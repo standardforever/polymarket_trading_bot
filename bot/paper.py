@@ -163,7 +163,7 @@ class PaperTrader:
             except (OSError, ValueError):
                 prior_status = {}
         self.log_file = self.log_path.open("a" if resume else "x", buffering=1)
-        self.history = JsonlTail(self.data / "stage4-round-history.jsonl", start_at_end=True)
+        self.history = JsonlTail(self.data / "round-history.jsonl", start_at_end=True)
         self.candidates, self.positions, self.handled = {}, {}, set()
         if resume and self.log_path.exists():
             try:
@@ -264,7 +264,7 @@ class PaperTrader:
     def _round_tail(self, start):
         if start in self.quote_tails:
             return self.quote_tails[start]
-        active = self.data / "stage4-active"
+        active = self.data / "active-rounds"
         paths = sorted(active.glob(f"*-{start}.jsonl")) if active.exists() else []
         if not paths:
             return None

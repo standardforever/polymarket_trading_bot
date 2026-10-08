@@ -504,7 +504,7 @@ class PredictionEngine:
             return
         if row is None:
             self.recorder.write_status(
-                "stage4-live-status.json", status="WAITING", slug=market["slug"],
+                "live-status.json", status="WAITING", slug=market["slug"],
                 remaining_seconds=remaining,
                 decision_window_seconds=[DECISION_WINDOW_CLOSE, DECISION_WINDOW_OPEN],
                 message="Collecting inputs for the first complete snapshot from 120 to 110 seconds")
@@ -512,7 +512,7 @@ class PredictionEngine:
         p_up = row.get("p_up")
         direction = row.get("direction", "SKIP")
         self.recorder.write_status(
-            "stage4-live-status.json",
+            "live-status.json",
             status="SIGNAL" if direction in ("Up", "Down") else "SKIP",
             slug=row["slug"], decision_ms=row["decision_ms"],
             remaining_seconds=row["remaining"], direction=direction,
@@ -628,7 +628,7 @@ class PredictionEngine:
                 self._publish_status(market, remaining)
                 return
             self.decisions[slug] = row
-            self.recorder.write("stage4_decision", **row)
+            self.recorder.write("strategy_decision", **row)
             self._record_round(row)
             self._publish_status(market, remaining, row)
             print(f"PREDICTION {slug}: {row['direction']} ({row['reason']})", flush=True)

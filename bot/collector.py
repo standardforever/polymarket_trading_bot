@@ -146,7 +146,7 @@ class Recorder:
         return None
 
     def _write_round_locked(self, start, payload):
-        active = self.folder / "stage4-active"
+        active = self.folder / "active-rounds"
         active.mkdir(exist_ok=True)
         if start not in self.round_files:
             path = active / f"{self.session_stamp}-{start}.jsonl"
@@ -157,7 +157,7 @@ class Recorder:
         handle = self.round_files.pop(start, None)
         if handle:
             handle.close()
-        active = self.folder / "stage4-active"
+        active = self.folder / "active-rounds"
         if active.exists():
             for path in active.glob(f"*-{start}.jsonl"):
                 path.unlink(missing_ok=True)
@@ -170,7 +170,7 @@ class Recorder:
         """Return unresolved starts whose temporary evidence still exists."""
         with self.lock:
             starts = set(self.round_files)
-            active = self.folder / "stage4-active"
+            active = self.folder / "active-rounds"
             if active.exists():
                 for path in active.glob("*.jsonl"):
                     try:
@@ -201,7 +201,7 @@ class Recorder:
 
     def append_round_history(self, record_type, slug, **fields):
         """Append compact decisions, entries and outcomes, even across restarts."""
-        filename = "stage4-round-history.jsonl"
+        filename = "round-history.jsonl"
         target = self.folder / filename
         suffix = f":{fields.get('delay_seconds')}" if record_type == "entry" else ""
         key = f"{record_type}:{slug}{suffix}"
