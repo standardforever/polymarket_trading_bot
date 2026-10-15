@@ -13,6 +13,7 @@ def _clean_event(row):
         return row
     cleaned = dict(row)
     cleaned.pop("model_version", None)
+    cleaned.pop("execution_mode", None)
     return cleaned
 
 
@@ -42,37 +43,28 @@ class BotRepository:
         self.data = data
         self.account = account
         self.history_path = data / "round-history.jsonl"
-        self.paper_folder = data / "paper-trading"
         self.real_folder = data / "real-trading" / "sessions"
 
     def prediction_status(self):
         return _json(self.data / "live-status.json")
 
-    def paper_status(self):
-        return _clean_event(_json(self.paper_folder / "latest-status.json"))
-
     def trading_status(self):
-        paper = self.paper_status()
         real = _json(self.real_folder / "latest-status.json")
         if real and real.get("run_id"):
-            session = next((row for row in self._sessions(
-                self.real_folder, "real", "real")
+            session = next((row for row in self._sessions()
                 if row.get("session_id") == real["run_id"]), None)
             if session:
                 real = session["status_detail"]
-        choices = [row for row in (paper, real) if row]
-        return max(choices, key=lambda row: row.get("updated_ms") or 0) if choices else None
+        return real
 
     def capabilities(self):
         return {
             "asset": "BTC",
             "market_duration_seconds": 300,
             "collector_hot_reload": False,
-            "paper_trading": True,
             "live_trading": False,
             "manual_orders": False,
             "live_websocket": True,
-            "round_trade_mode_filter": True,
         }
 
     def health(self):
@@ -84,7 +76,7 @@ class BotRepository:
             "server_time_ms": now_ms,
             "collector": {"available": prediction is not None, "age_ms": age,
                           "fresh": age is not None and age <= 15_000},
-            "paper_trader": {"available": self.paper_status() is not None},
+            "trader": {"available": self.trading_status() is not None},
         }
 
     def _round_map(self):
@@ -103,15 +95,13 @@ class BotRepository:
 
     def _trade_map(self):
         trades = {}
-        paths = [(path, "paper") for path in self.paper_folder.glob("paper-*.jsonl")]
-        paths += [(path, "real") for path in self.real_folder.glob("real-*.jsonl")]
-        for path, mode in sorted(paths, key=lambda item: str(item[0])):
+        paths = sorted(self.real_folder.glob("real-*.jsonl"), key=str)
+        for path in paths:
             for row in _jsonl(path) or ():
                 if row.get("event") not in ("trade_filled", "trade_resolved"):
                     continue
                 key = (row.get("run_id"), row.get("slug"))
-                item = trades.setdefault(key, {"run_id": key[0], "slug": key[1],
-                                               "mode": mode})
+                item = trades.setdefault(key, {"run_id": key[0], "slug": key[1]})
                 item["fill" if row["event"] == "trade_filled" else "resolution"] = row
         return trades
 
@@ -126,35 +116,45 @@ class BotRepository:
             # A matched BUY's making_amount is the confirmed USDC principal.
             # Immediate collateral snapshots can lag and old real-session rows
             # therefore sometimes contain an incorrect balance-delta cost.
-            if item.get("mode") == "real":
-                making_amount = (fill.get("exchange_response") or {}).get(
-                    "making_amount")
-                if making_amount is not None:
-                    principal = float(making_amount)
-                    shares = float(fill.get("shares") or 0)
-                    price = principal / shares if shares > 0 else float(
-                        fill.get("price") or 0)
-                    decision = (round_map.get(item.get("slug")) or {}).get(
-                        "decision") or {}
-                    fee_rate = float(fill.get("fee_rate")
-                                     if fill.get("fee_rate") is not None
-                                     else decision.get("fee_rate") or 0)
-                    fee = shares * fee_rate * price * (1 - price)
-                    cost = principal + fee
-                    fill["trade_cost"] = cost
-                    fill["fee"] = fee
-                    if shares > 0:
-                        fill["price"] = price
-                    if resolution:
-                        resolution["trade_cost"] = cost
-                        resolution["fee"] = fee
-                        resolution["profit"] = float(
-                            resolution.get("payout") or 0) - cost
+            making_amount = (fill.get("exchange_response") or {}).get("making_amount")
+            if making_amount is not None:
+                principal = float(making_amount)
+                shares = float(fill.get("shares") or 0)
+                price = principal / shares if shares > 0 else float(fill.get("price") or 0)
+                decision = (round_map.get(item.get("slug")) or {}).get("decision") or {}
+                fee_rate = float(fill.get("fee_rate") if fill.get("fee_rate") is not None
+                                 else decision.get("fee_rate") or 0)
+                fee = shares * fee_rate * price * (1 - price)
+                cost = principal + fee
+                fill["trade_cost"] = cost
+                fill["fee"] = fee
+                if shares > 0:
+                    fill["price"] = price
+                if resolution:
+                    resolution["trade_cost"] = cost
+                    resolution["fee"] = fee
+                    resolution["profit"] = float(resolution.get("payout") or 0) - cost
+            # The collector's settled winner is authoritative. Account position
+            # marks can briefly report 0/1 or redeemable before the final BTC
+            # five-minute result is available, so override any conflicting
+            # provisional session result in every API view.
+            official = (round_map.get(item.get("slug")) or {}).get("resolution") or {}
+            official_actual = official.get("actual_result")
+            if official_actual in ("Up", "Down"):
+                shares = float(fill.get("shares") or 0)
+                cost = float(fill.get("trade_cost") or 0)
+                won = fill.get("side") == official_actual
+                payout = shares if won else 0.0
+                resolution.update(
+                    actual=official_actual, won=won, payout=payout,
+                    profit=payout - cost,
+                    recorded_ms=official.get("recorded_ms"),
+                    resolution_source="official_round_history",
+                )
             status = ("WIN" if resolution.get("won") is True else
                       "LOSS" if resolution.get("won") is False else "OPEN")
             rows.append({
                 "run_id": item["run_id"], "slug": item["slug"], "status": status,
-                "mode": item.get("mode", "paper"),
                 "side": fill.get("side"), "forecast_probability": fill.get("forecast_probability"),
                 "entry_ms": fill.get("entry_ms"), "entry_price": fill.get("price"),
                 "shares": fill.get("shares"), "fee": fill.get("fee"),
@@ -164,8 +164,9 @@ class BotRepository:
             })
         return sorted(rows, key=lambda row: row.get("entry_ms") or 0, reverse=True)
 
-    def _sessions(self, folder, prefix, mode, include_legacy=False):
+    def _sessions(self):
         sessions = []
+        folder, prefix = self.real_folder, "real"
         if not folder.exists():
             return sessions
         trades = self.trades()
@@ -175,42 +176,14 @@ class BotRepository:
             if not metadata or not metadata.get("session_id"):
                 continue
             metadata_by_id[metadata["session_id"]] = metadata
-        if include_legacy:
-            for path in folder.glob(f"{prefix}-*.jsonl"):
-                first = next(iter(_jsonl(path) or ()), None)
-                if (not first or not first.get("run_id")
-                        or first["run_id"] in metadata_by_id):
-                    continue
-                session_id = first["run_id"]
-                starting = float(first.get("starting_bankroll") or 0)
-                metadata_by_id[session_id] = {
-                    "session_id": session_id,
-                    "created_ms": first.get("recorded_ms"),
-                    "name": f"Legacy paper session {session_id[:15]}",
-                    "mode": mode,
-                    "paper_only": True,
-                    "legacy": True,
-                    "configuration": {
-                        "starting_bankroll": starting,
-                        "allocation_fraction": .8,
-                        "maximum_trade_usd": None,
-                        "model_threshold": first.get("model_threshold", .9),
-                        "minimum_edge": first.get("minimum_edge", .03),
-                        "entry_cutoff_seconds": first.get(
-                            "stop_entry_at_remaining_seconds", 50),
-                        "max_trades": None, "target_profit_usd": None,
-                        "max_loss_usd": None,
-                        "planned_first_trade_budget": (
-                            starting * .8 if starting > 20 else starting),
-                    },
-                }
         live_cash = None
-        if mode == "real" and self.account is not None:
+        if self.account is not None:
             snapshot = self.account.snapshot()
             if snapshot.get("connected") and snapshot.get("balance_usdc") is not None:
                 live_cash = float(snapshot["balance_usdc"])
         for metadata in metadata_by_id.values():
             metadata = dict(metadata)
+            metadata.pop("mode", None)
             metadata["configuration"] = dict(metadata.get("configuration") or {})
             metadata["configuration"].pop("model_version", None)
             session_id = metadata["session_id"]
@@ -219,21 +192,19 @@ class BotRepository:
             session_trades = [row for row in trades if row.get("run_id") == session_id]
             realized_profit = sum(float(row.get("profit") or 0)
                                   for row in session_trades)
-            if mode == "real":
-                starting = float((metadata.get("configuration") or {}).get(
-                    "starting_bankroll") or 0)
-                open_cost = sum(float(row.get("cost") or 0) for row in session_trades
-                                if row.get("status") == "OPEN")
-                status = dict(status)
-                reconstructed_cash = max(0.0, starting + realized_profit - open_cost)
-                if (live_cash is not None
-                        and status.get("status") not in TERMINAL_STATUSES):
-                    status["available_bankroll"] = live_cash
-                    status["balance_source"] = "account_api"
-                else:
-                    status["available_bankroll"] = reconstructed_cash
-                    status["balance_source"] = "session_ledger"
-                status["realized_profit"] = realized_profit
+            starting = float((metadata.get("configuration") or {}).get(
+                "starting_bankroll") or 0)
+            open_cost = sum(float(row.get("cost") or 0) for row in session_trades
+                            if row.get("status") == "OPEN")
+            status = dict(status)
+            reconstructed_cash = max(0.0, starting + realized_profit - open_cost)
+            if live_cash is not None and status.get("status") not in TERMINAL_STATUSES:
+                status["available_bankroll"] = live_cash
+                status["balance_source"] = "account_api"
+            else:
+                status["available_bankroll"] = reconstructed_cash
+                status["balance_source"] = "session_ledger"
+            status["realized_profit"] = realized_profit
             sessions.append({
                 **metadata,
                 "status": status.get("status", "UNKNOWN"),
@@ -246,38 +217,19 @@ class BotRepository:
             })
         return sorted(sessions, key=lambda row: row.get("created_ms") or 0, reverse=True)
 
-    def paper_sessions(self):
-        return self._sessions(self.paper_folder, "paper", "paper", include_legacy=True)
-
     def trading_sessions(self):
-        rows = self.paper_sessions()
-        rows += self._sessions(self.real_folder, "real", "real")
-        return sorted(rows, key=lambda row: row.get("created_ms") or 0, reverse=True)
-
-    def paper_session(self, session_id):
-        session = next((row for row in self.paper_sessions()
-                        if row["session_id"] == session_id), None)
-        if session is None:
-            return None
-        log_path = self.paper_folder / f"paper-{session_id}.jsonl"
-        session["trades"] = [row for row in self.trades()
-                             if row.get("run_id") == session_id]
-        session["events"] = [_clean_event(row) for row in (_jsonl(log_path) or ())]
-        return session
+        return self._sessions()
 
     def trading_session(self, session_id):
         session = next((row for row in self.trading_sessions()
                         if row["session_id"] == session_id), None)
         if session is None:
             return None
-        mode = session.get("mode", "paper")
-        folder = self.paper_folder if mode == "paper" else self.real_folder
-        prefix = "paper" if mode == "paper" else "real"
         session["trades"] = [row for row in self.trades()
                              if row.get("run_id") == session_id]
         session["events"] = [
             _clean_event(row)
-            for row in (_jsonl(folder / f"{prefix}-{session_id}.jsonl") or ())
+            for row in (_jsonl(self.real_folder / f"real-{session_id}.jsonl") or ())
         ]
         return session
 
@@ -301,8 +253,6 @@ class BotRepository:
                            decision.get("p_down") if prediction == "Down" else
                            max((decision.get("p_up") or 0), (decision.get("p_down") or 0)))
             round_trades = trades_by_slug.get(decision["slug"], [])
-            trade_modes = sorted({trade.get("mode") for trade in round_trades
-                                  if trade.get("mode") in ("paper", "real")})
             components = decision.get("components") or {}
             market_component = components.get("market") or {}
             quotes = decision.get("quotes") or {}
@@ -317,7 +267,6 @@ class BotRepository:
                 "market_down_ask": down_quote.get("ask"),
                 "warnings": decision.get("warnings") or [], "actual": actual,
                 "result": result, "traded": decision["slug"] in traded,
-                "trade_modes": trade_modes,
                 "estimated_edge": decision.get("estimated_edge"),
                 "distance_to_beat": decision.get("distance_to_beat"),
                 "distance_source": decision.get("distance_source"),
@@ -335,7 +284,7 @@ class BotRepository:
         item["entries"] = {
             key: _clean_event(value) for key, value in item.get("entries", {}).items()
         }
-        item["paper_trades"] = [row for row in self.trades() if row["slug"] == slug]
+        item["trades"] = [row for row in self.trades() if row["slug"] == slug]
         return item
 
     def statistics(self):
@@ -349,7 +298,7 @@ class BotRepository:
             "signal_wins": sum(r["result"] == "WIN" for r in resolved_signals),
             "signal_accuracy": (sum(r["result"] == "WIN" for r in resolved_signals) /
                                 len(resolved_signals) if resolved_signals else None),
-            "paper_trades": len(trades), "open_trades": sum(t["status"] == "OPEN" for t in trades),
+            "trades": len(trades), "open_trades": sum(t["status"] == "OPEN" for t in trades),
             "trade_wins": sum(t["status"] == "WIN" for t in trades),
             "trade_losses": sum(t["status"] == "LOSS" for t in trades),
             "realized_profit": sum(t.get("profit") or 0 for t in resolved_trades),
@@ -398,6 +347,5 @@ class BotRepository:
 
     def live(self):
         rounds = self.rounds()
-        return {"prediction": self.prediction_status(), "paper": self.paper_status(),
-                "trading": self.trading_status(),
+        return {"prediction": self.prediction_status(), "trading": self.trading_status(),
                 "latest_decision": rounds[0] if rounds else None}

@@ -40,6 +40,29 @@ def _clean_decision(row):
     return cleaned
 
 
+def _write_rows(path, rows):
+    temporary = path.with_name(f".{path.name}.tmp")
+    with temporary.open("w") as output:
+        for row in rows:
+            output.write(json.dumps(row, separators=(",", ":")) + "\n")
+        output.flush()
+    temporary.replace(path)
+
+
+def _archive_sources(data, sources, label=""):
+    archive = data / "archive" / "legacy-history"
+    archive.mkdir(parents=True, exist_ok=True)
+    for path in sources:
+        base = f"{label}{path.name}"
+        destination = archive / base
+        sequence = 2
+        while destination.exists():
+            destination = archive / f"{Path(base).stem}-{sequence}{Path(base).suffix}"
+            sequence += 1
+        path.replace(destination)
+    return archive
+
+
 def prepare_history(data):
     """Archive retired history and create the retained-strategy history once."""
     data = Path(data)
@@ -58,7 +81,28 @@ def prepare_history(data):
         if LEGACY_OUTPUT in (row.get("model_outputs") or {})
     ]
     if not legacy_starts:
-        raise RuntimeError("Retained-strategy history could not be identified")
+        if not target.exists():
+            raise RuntimeError("Retained-strategy history could not be identified")
+        # A collector that was still shutting down after the first migration
+        # can recreate the old filename with a final decision or resolution.
+        # Merge those already-single-strategy rows without rerunning selection.
+        retained = _read_jsonl(target)
+        seen = {(row.get("record_type"), row.get("slug"), row.get("delay_seconds"))
+                for row in retained}
+        added = 0
+        for row in sorted(source_rows, key=lambda value: value.get("recorded_ms") or 0):
+            key = (row.get("record_type"), row.get("slug"), row.get("delay_seconds"))
+            if not row.get("slug") or key in seen:
+                continue
+            seen.add(key)
+            retained.append(_clean_decision(row) if row.get("record_type") == "decision"
+                            else dict(row))
+            added += 1
+        retained.sort(key=lambda value: value.get("recorded_ms") or 0)
+        _write_rows(target, retained)
+        _archive_sources(data, sources, "post-migration-")
+        return {"migrated": True, "merged_post_migration_rows": added,
+                "retained_rows": len(retained)}
     last_legacy_start = max(legacy_starts)
     retained_slugs = {
         row.get("slug") for row in decisions
@@ -80,20 +124,9 @@ def prepare_history(data):
         retained.append(_clean_decision(row) if row.get("record_type") == "decision"
                         else dict(row))
 
-    temporary = target.with_name(f".{target.name}.tmp")
-    with temporary.open("w") as output:
-        for row in retained:
-            output.write(json.dumps(row, separators=(",", ":")) + "\n")
-        output.flush()
-    temporary.replace(target)
+    _write_rows(target, retained)
 
-    archive = data / "archive" / "legacy-history"
-    archive.mkdir(parents=True, exist_ok=True)
-    for path in sources:
-        destination = archive / path.name
-        if destination.exists():
-            destination.unlink()
-        path.replace(destination)
+    archive = _archive_sources(data, sources)
     old_status = data / "stage4-live-status.json"
     if old_status.exists():
         old_status.replace(archive / old_status.name)

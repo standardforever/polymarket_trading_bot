@@ -65,6 +65,20 @@ class FakeClient:
                     making_amount="8", taking_amount="10", trade_ids=["trade-1"],
                     transactions_hashes=[])
 
+    def create_market_order(self, **kwargs):
+        self.prepared = kwargs
+        amount = Decimal(kwargs["amount"])
+        return Item(maker_amount=int(amount * 1_000_000),
+                    taker_amount=int(amount / Decimal("0.8") * 1_000_000))
+
+    def post_order(self, signed_order):
+        self.placed.append(self.prepared)
+        return Item(ok=True, order_id="order-1", status="MATCHED",
+                    making_amount=self.prepared["amount"],
+                    taking_amount=str(Decimal(self.prepared["amount"]) /
+                                      Decimal("0.8")),
+                    trade_ids=["trade-1"], transactions_hashes=[])
+
 
 class AccountTests(unittest.TestCase):
     def setUp(self):
@@ -73,7 +87,7 @@ class AccountTests(unittest.TestCase):
         self.live = LiveStore()
         self.live.update_market(
             slug="btc-updown-5m-100", received_ms=150_000, remaining_seconds=50,
-            quotes={"Up": {"ready": True, "bid": ".7", "ask": ".8"},
+            quotes={"Up": {"ready": True, "bid": ".7", "ask": ".81"},
                     "Down": {"ready": True, "bid": ".19", "ask": ".2"}},
             tokens={"up-token": "Up", "down-token": "Down"},
             market_end_ms=200_000)
@@ -192,12 +206,29 @@ class AccountTests(unittest.TestCase):
             return original_balance(**kwargs)
 
         self.client.get_balance_allowance = balance_then_move
-        with self.assertRaisesRegex(ValueError, "15 cents below"):
+        with self.assertRaisesRegex(ValueError, "must be above the 0.80 entry floor"):
             self.account.automatic_buy(
                 run_id="real-run", slug="btc-updown-5m-100", outcome="Up",
                 amount_usd=Decimal("1"), maximum_price=Decimal("0.90"),
-                signal_ask=Decimal("0.80"),
-                maximum_adverse_price_move=Decimal("0.15"))
+                signal_ask=Decimal("0.90"),
+                maximum_adverse_price_move=Decimal("0.10"),
+                minimum_entry_price=Decimal("0.80"))
+        self.assertEqual(self.client.placed, [])
+
+    def test_automatic_buy_rejects_price_collapse_encoded_by_signed_order(self):
+        def collapsed_order(**kwargs):
+            amount = Decimal(kwargs["amount"])
+            return Item(maker_amount=int(amount * 1_000_000),
+                        taker_amount=int(amount / Decimal("0.60") * 1_000_000))
+
+        self.client.create_market_order = collapsed_order
+        with self.assertRaisesRegex(ValueError, "Signed executable price must be above the 0.80"):
+            self.account.automatic_buy(
+                run_id="real-run", slug="btc-updown-5m-100", outcome="Up",
+                amount_usd=Decimal("1"), maximum_price=Decimal("0.90"),
+                signal_ask=Decimal("0.90"),
+                maximum_adverse_price_move=Decimal("0.10"),
+                minimum_entry_price=Decimal("0.80"))
         self.assertEqual(self.client.placed, [])
 
     def test_automatic_buy_allows_sdk_allowance_recovery(self):

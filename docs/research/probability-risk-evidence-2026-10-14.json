@@ -1,0 +1,1982 @@
+{
+  "date": "2026-10-14",
+  "scope": "retrospective research only; production code unchanged",
+  "local_counts": {
+    "D": 2237,
+    "R": 2228,
+    "valid": 2123,
+    "train": 1461,
+    "test": 662,
+    "excluded": {
+      "missing_features_or_prices": 105,
+      "no_resolution": 9
+    },
+    "recomputed_different": 397
+  },
+  "local_models": {
+    "current": {
+      "train": {
+        "n": 1461,
+        "brier": 0.11505,
+        "logloss": 0.36597,
+        "0.95": {
+          "n": 628,
+          "wins": 610,
+          "losses": 18,
+          "accuracy": 97.134,
+          "wilson95": [
+            95.51,
+            98.18
+          ],
+          "quoted_pnl_1usd": 5.6853,
+          "quote_n": 511,
+          "loss_slugs": [
+            "btc-updown-5m-1790238600",
+            "btc-updown-5m-1790251800",
+            "btc-updown-5m-1790262000",
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790370600",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790508900",
+            "btc-updown-5m-1790525700",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900",
+            "btc-updown-5m-1790603400",
+            "btc-updown-5m-1790616600",
+            "btc-updown-5m-1790619900",
+            "btc-updown-5m-1790660100",
+            "btc-updown-5m-1790666100",
+            "btc-updown-5m-1790678400",
+            "btc-updown-5m-1790684100",
+            "btc-updown-5m-1790693700"
+          ]
+        },
+        "0.98": {
+          "n": 493,
+          "wins": 486,
+          "losses": 7,
+          "accuracy": 98.58,
+          "wilson95": [
+            97.1,
+            99.31
+          ],
+          "quoted_pnl_1usd": 6.0017,
+          "quote_n": 376,
+          "loss_slugs": [
+            "btc-updown-5m-1790238600",
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900",
+            "btc-updown-5m-1790616600",
+            "btc-updown-5m-1790684100"
+          ]
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.13143,
+        "logloss": 0.40878,
+        "0.95": {
+          "n": 223,
+          "wins": 216,
+          "losses": 7,
+          "accuracy": 96.861,
+          "wilson95": [
+            93.66,
+            98.47
+          ],
+          "quoted_pnl_1usd": 1.2261,
+          "quote_n": 179,
+          "loss_slugs": [
+            "btc-updown-5m-1791414600",
+            "btc-updown-5m-1791456000",
+            "btc-updown-5m-1791524100",
+            "btc-updown-5m-1791765600",
+            "btc-updown-5m-1791766500",
+            "btc-updown-5m-1791773100",
+            "btc-updown-5m-1791780300"
+          ]
+        },
+        "0.98": {
+          "n": 168,
+          "wins": 166,
+          "losses": 2,
+          "accuracy": 98.81,
+          "wilson95": [
+            95.76,
+            99.67
+          ],
+          "quoted_pnl_1usd": 2.5522,
+          "quote_n": 124,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000",
+            "btc-updown-5m-1791780300"
+          ]
+        }
+      }
+    },
+    "sigma1.5": {
+      "train": {
+        "n": 1461,
+        "brier": 0.11662,
+        "logloss": 0.3663,
+        "0.95": {
+          "n": 379,
+          "wins": 376,
+          "losses": 3,
+          "accuracy": 99.208,
+          "wilson95": [
+            97.7,
+            99.73
+          ],
+          "quoted_pnl_1usd": 3.7682,
+          "quote_n": 265,
+          "loss_slugs": [
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900"
+          ]
+        },
+        "0.98": {
+          "n": 249,
+          "wins": 249,
+          "losses": 0,
+          "accuracy": 100.0,
+          "wilson95": [
+            98.48,
+            100.0
+          ],
+          "quoted_pnl_1usd": 3.2134,
+          "quote_n": 147,
+          "loss_slugs": []
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.13454,
+        "logloss": 0.41546,
+        "0.95": {
+          "n": 124,
+          "wins": 123,
+          "losses": 1,
+          "accuracy": 99.194,
+          "wilson95": [
+            95.57,
+            99.86
+          ],
+          "quoted_pnl_1usd": 2.0704,
+          "quote_n": 82,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        },
+        "0.98": {
+          "n": 83,
+          "wins": 82,
+          "losses": 1,
+          "accuracy": 98.795,
+          "wilson95": [
+            93.49,
+            99.79
+          ],
+          "quoted_pnl_1usd": -0.37,
+          "quote_n": 45,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        }
+      }
+    },
+    "sigma2": {
+      "train": {
+        "n": 1461,
+        "brier": 0.12245,
+        "logloss": 0.38808,
+        "0.95": {
+          "n": 201,
+          "wins": 201,
+          "losses": 0,
+          "accuracy": 100.0,
+          "wilson95": [
+            98.12,
+            100.0
+          ],
+          "quoted_pnl_1usd": 2.3277,
+          "quote_n": 113,
+          "loss_slugs": []
+        },
+        "0.98": {
+          "n": 93,
+          "wins": 93,
+          "losses": 0,
+          "accuracy": 100.0,
+          "wilson95": [
+            96.03,
+            100.0
+          ],
+          "quoted_pnl_1usd": 0.5665,
+          "quote_n": 37,
+          "loss_slugs": []
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.14113,
+        "logloss": 0.43752,
+        "0.95": {
+          "n": 68,
+          "wins": 67,
+          "losses": 1,
+          "accuracy": 98.529,
+          "wilson95": [
+            92.13,
+            99.74
+          ],
+          "quoted_pnl_1usd": -0.5667,
+          "quote_n": 34,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        },
+        "0.98": {
+          "n": 33,
+          "wins": 33,
+          "losses": 0,
+          "accuracy": 100.0,
+          "wilson95": [
+            89.57,
+            100.0
+          ],
+          "quoted_pnl_1usd": 0.1181,
+          "quote_n": 13,
+          "loss_slugs": []
+        }
+      }
+    },
+    "max_vol30_120": {
+      "train": {
+        "n": 1461,
+        "brier": 0.1155,
+        "logloss": 0.36711,
+        "0.95": {
+          "n": 587,
+          "wins": 571,
+          "losses": 16,
+          "accuracy": 97.274,
+          "wilson95": [
+            95.62,
+            98.32
+          ],
+          "quoted_pnl_1usd": 4.4086,
+          "quote_n": 472,
+          "loss_slugs": [
+            "btc-updown-5m-1790238600",
+            "btc-updown-5m-1790251800",
+            "btc-updown-5m-1790262000",
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790370600",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790525700",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900",
+            "btc-updown-5m-1790603400",
+            "btc-updown-5m-1790616600",
+            "btc-updown-5m-1790619900",
+            "btc-updown-5m-1790660100",
+            "btc-updown-5m-1790666100",
+            "btc-updown-5m-1790678400",
+            "btc-updown-5m-1790684100"
+          ]
+        },
+        "0.98": {
+          "n": 453,
+          "wins": 446,
+          "losses": 7,
+          "accuracy": 98.455,
+          "wilson95": [
+            96.85,
+            99.25
+          ],
+          "quoted_pnl_1usd": 3.9471,
+          "quote_n": 339,
+          "loss_slugs": [
+            "btc-updown-5m-1790238600",
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900",
+            "btc-updown-5m-1790616600",
+            "btc-updown-5m-1790684100"
+          ]
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.132,
+        "logloss": 0.41043,
+        "0.95": {
+          "n": 213,
+          "wins": 207,
+          "losses": 6,
+          "accuracy": 97.183,
+          "wilson95": [
+            93.99,
+            98.7
+          ],
+          "quoted_pnl_1usd": 1.6405,
+          "quote_n": 169,
+          "loss_slugs": [
+            "btc-updown-5m-1791414600",
+            "btc-updown-5m-1791456000",
+            "btc-updown-5m-1791765600",
+            "btc-updown-5m-1791766500",
+            "btc-updown-5m-1791773100",
+            "btc-updown-5m-1791780300"
+          ]
+        },
+        "0.98": {
+          "n": 154,
+          "wins": 152,
+          "losses": 2,
+          "accuracy": 98.701,
+          "wilson95": [
+            95.39,
+            99.64
+          ],
+          "quoted_pnl_1usd": 1.9113,
+          "quote_n": 110,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000",
+            "btc-updown-5m-1791780300"
+          ]
+        }
+      }
+    },
+    "t3_equal_variance": {
+      "train": {
+        "n": 1461,
+        "brier": 0.11736,
+        "logloss": 0.379,
+        "0.95": {
+          "n": 765,
+          "wins": 729,
+          "losses": 36,
+          "accuracy": 95.294,
+          "wilson95": [
+            93.55,
+            96.58
+          ],
+          "quoted_pnl_1usd": 1.3164,
+          "quote_n": 647,
+          "loss_slugs": [
+            "btc-updown-5m-1790237100",
+            "btc-updown-5m-1790238600",
+            "btc-updown-5m-1790251800",
+            "btc-updown-5m-1790262000",
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790297400",
+            "btc-updown-5m-1790321700",
+            "btc-updown-5m-1790353800",
+            "btc-updown-5m-1790370600",
+            "btc-updown-5m-1790372100",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790387100",
+            "btc-updown-5m-1790393400",
+            "btc-updown-5m-1790430900",
+            "btc-updown-5m-1790461200",
+            "btc-updown-5m-1790490900",
+            "btc-updown-5m-1790492100",
+            "btc-updown-5m-1790508900",
+            "btc-updown-5m-1790525700",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790561100",
+            "btc-updown-5m-1790580900",
+            "btc-updown-5m-1790603400",
+            "btc-updown-5m-1790616600",
+            "btc-updown-5m-1790619900",
+            "btc-updown-5m-1790620500",
+            "btc-updown-5m-1790644200",
+            "btc-updown-5m-1790649600",
+            "btc-updown-5m-1790653200",
+            "btc-updown-5m-1790660100",
+            "btc-updown-5m-1790664300",
+            "btc-updown-5m-1790666100",
+            "btc-updown-5m-1790678400",
+            "btc-updown-5m-1790684100",
+            "btc-updown-5m-1790692800",
+            "btc-updown-5m-1790693700"
+          ]
+        },
+        "0.98": {
+          "n": 507,
+          "wins": 499,
+          "losses": 8,
+          "accuracy": 98.422,
+          "wilson95": [
+            96.92,
+            99.2
+          ],
+          "quoted_pnl_1usd": 5.9487,
+          "quote_n": 390,
+          "loss_slugs": [
+            "btc-updown-5m-1790238600",
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790525700",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900",
+            "btc-updown-5m-1790616600",
+            "btc-updown-5m-1790684100"
+          ]
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.13307,
+        "logloss": 0.4184,
+        "0.95": {
+          "n": 272,
+          "wins": 258,
+          "losses": 14,
+          "accuracy": 94.853,
+          "wilson95": [
+            91.55,
+            96.91
+          ],
+          "quoted_pnl_1usd": -2.1876,
+          "quote_n": 228,
+          "loss_slugs": [
+            "btc-updown-5m-1791414600",
+            "btc-updown-5m-1791422100",
+            "btc-updown-5m-1791456000",
+            "btc-updown-5m-1791517800",
+            "btc-updown-5m-1791522300",
+            "btc-updown-5m-1791524100",
+            "btc-updown-5m-1791663900",
+            "btc-updown-5m-1791691200",
+            "btc-updown-5m-1791733800",
+            "btc-updown-5m-1791760500",
+            "btc-updown-5m-1791765600",
+            "btc-updown-5m-1791766500",
+            "btc-updown-5m-1791773100",
+            "btc-updown-5m-1791780300"
+          ]
+        },
+        "0.98": {
+          "n": 171,
+          "wins": 168,
+          "losses": 3,
+          "accuracy": 98.246,
+          "wilson95": [
+            94.97,
+            99.4
+          ],
+          "quoted_pnl_1usd": 1.6726,
+          "quote_n": 127,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000",
+            "btc-updown-5m-1791766500",
+            "btc-updown-5m-1791780300"
+          ]
+        }
+      }
+    },
+    "t3_wider_scale": {
+      "train": {
+        "n": 1461,
+        "brier": 0.11461,
+        "logloss": 0.36106,
+        "0.95": {
+          "n": 414,
+          "wins": 410,
+          "losses": 4,
+          "accuracy": 99.034,
+          "wilson95": [
+            97.54,
+            99.62
+          ],
+          "quoted_pnl_1usd": 4.092,
+          "quote_n": 299,
+          "loss_slugs": [
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900",
+            "btc-updown-5m-1790684100"
+          ]
+        },
+        "0.98": {
+          "n": 173,
+          "wins": 173,
+          "losses": 0,
+          "accuracy": 100.0,
+          "wilson95": [
+            97.83,
+            100.0
+          ],
+          "quoted_pnl_1usd": 1.545,
+          "quote_n": 89,
+          "loss_slugs": []
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.13162,
+        "logloss": 0.40755,
+        "0.95": {
+          "n": 138,
+          "wins": 137,
+          "losses": 1,
+          "accuracy": 99.275,
+          "wilson95": [
+            96.01,
+            99.87
+          ],
+          "quoted_pnl_1usd": 2.4502,
+          "quote_n": 94,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        },
+        "0.98": {
+          "n": 61,
+          "wins": 60,
+          "losses": 1,
+          "accuracy": 98.361,
+          "wilson95": [
+            91.28,
+            99.71
+          ],
+          "quoted_pnl_1usd": -0.6139,
+          "quote_n": 30,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        }
+      }
+    },
+    "fit_scale_floor": {
+      "train": {
+        "n": 1461,
+        "brier": 0.11355,
+        "logloss": 0.35883,
+        "0.95": {
+          "n": 492,
+          "wins": 481,
+          "losses": 11,
+          "accuracy": 97.764,
+          "wilson95": [
+            96.04,
+            98.75
+          ],
+          "quoted_pnl_1usd": 2.5812,
+          "quote_n": 377,
+          "loss_slugs": [
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790370600",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790393400",
+            "btc-updown-5m-1790419800",
+            "btc-updown-5m-1790430900",
+            "btc-updown-5m-1790490900",
+            "btc-updown-5m-1790508900",
+            "btc-updown-5m-1790510100",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900"
+          ]
+        },
+        "0.98": {
+          "n": 339,
+          "wins": 336,
+          "losses": 3,
+          "accuracy": 99.115,
+          "wilson95": [
+            97.43,
+            99.7
+          ],
+          "quoted_pnl_1usd": 4.5347,
+          "quote_n": 236,
+          "loss_slugs": [
+            "btc-updown-5m-1790370600",
+            "btc-updown-5m-1790373000",
+            "btc-updown-5m-1790508900"
+          ]
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.12766,
+        "logloss": 0.39423,
+        "0.95": {
+          "n": 213,
+          "wins": 209,
+          "losses": 4,
+          "accuracy": 98.122,
+          "wilson95": [
+            95.27,
+            99.27
+          ],
+          "quoted_pnl_1usd": 3.446,
+          "quote_n": 171,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000",
+            "btc-updown-5m-1791582000",
+            "btc-updown-5m-1791663900",
+            "btc-updown-5m-1791691200"
+          ]
+        },
+        "0.98": {
+          "n": 143,
+          "wins": 142,
+          "losses": 1,
+          "accuracy": 99.301,
+          "wilson95": [
+            96.15,
+            99.88
+          ],
+          "quoted_pnl_1usd": 2.097,
+          "quote_n": 104,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        }
+      }
+    },
+    "empirical_residual": {
+      "train": {
+        "n": 1461,
+        "brier": 0.11289,
+        "logloss": 0.35663,
+        "0.95": {
+          "n": 445,
+          "wins": 442,
+          "losses": 3,
+          "accuracy": 99.326,
+          "wilson95": [
+            98.04,
+            99.77
+          ],
+          "quoted_pnl_1usd": 7.4107,
+          "quote_n": 329,
+          "loss_slugs": [
+            "btc-updown-5m-1790268000",
+            "btc-updown-5m-1790553300",
+            "btc-updown-5m-1790580900"
+          ]
+        },
+        "0.98": {
+          "n": 215,
+          "wins": 215,
+          "losses": 0,
+          "accuracy": 100.0,
+          "wilson95": [
+            98.24,
+            100.0
+          ],
+          "quoted_pnl_1usd": 2.3748,
+          "quote_n": 119,
+          "loss_slugs": []
+        }
+      },
+      "test": {
+        "n": 662,
+        "brier": 0.13191,
+        "logloss": 0.40747,
+        "0.95": {
+          "n": 150,
+          "wins": 149,
+          "losses": 1,
+          "accuracy": 99.333,
+          "wilson95": [
+            96.32,
+            99.88
+          ],
+          "quoted_pnl_1usd": 2.8982,
+          "quote_n": 107,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        },
+        "0.98": {
+          "n": 78,
+          "wins": 77,
+          "losses": 1,
+          "accuracy": 98.718,
+          "wilson95": [
+            93.09,
+            99.77
+          ],
+          "quoted_pnl_1usd": -0.4182,
+          "quote_n": 39,
+          "loss_slugs": [
+            "btc-updown-5m-1791456000"
+          ]
+        }
+      }
+    }
+  },
+  "external_checksums": [
+    {
+      "name": "BTCUSD-prices-2026-09-08.csv.gz",
+      "sha256": "0041ffbe507b44f0d41a6ccccba6afc6967f9b6aff9c1cc329cdd6cde071b538",
+      "matches_publisher": true,
+      "rows_publisher": 81970
+    },
+    {
+      "name": "BTCUSD-twap60s-prices-2026-09-08.csv.gz",
+      "sha256": "425153748fd7d0e914a054f72287fafe108f539dc45e42fca2dc51cfc4dddb97",
+      "matches_publisher": true,
+      "rows_publisher": 81969
+    },
+    {
+      "name": "BTC-5m-markets-2026-09-08.jsonl.gz",
+      "sha256": "4096a32ef2a42628a81a5d221b4e9c6f28fdebe26c805b835972dc490bcc3d88",
+      "matches_publisher": true,
+      "rows_publisher": 292
+    },
+    {
+      "name": "BTC-5m-book-2026-09-08.jsonl.gz",
+      "sha256": "e54595d9bc2a4877bc38d5be0ea3a1e809f6027dc26a9776ba3b83816b2d7de7",
+      "matches_publisher": true,
+      "rows_publisher": 141402
+    },
+    {
+      "name": "BTC-5m-best_bid_ask-2026-09-08.jsonl.gz",
+      "sha256": "14bf5b0dd04773df0fad953551556a9c333a2ba8b367e2b931306412e364b7fd",
+      "matches_publisher": true,
+      "rows_publisher": 1314078
+    }
+  ],
+  "external_data_source": "https://github.com/Ligengxin96/polymarket-data-samples/releases/tag/samples-2026-09-08",
+  "cutoff_local_slug": "btc-updown-5m-1791932700",
+  "external_strict_replay": {
+    "1:clean98": {
+      "trades": 12,
+      "wins": 12,
+      "losses": 0,
+      "pnl": 1.0245330226983769,
+      "fees": 0.06930000000000001,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788848700",
+          "remaining": 81,
+          "z": -2.7745896544275017,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788860100",
+          "remaining": 120,
+          "z": 3.052601434690576,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788873300",
+          "remaining": 112,
+          "z": -2.083603333704249,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788874500",
+          "remaining": 107,
+          "z": -2.121706179778287,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 0.17927619047619045,
+          "avg": 0.84,
+          "fee": 0.011200000000000003,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877200",
+          "remaining": 101,
+          "z": 2.080708617622311,
+          "verified": true,
+          "ask_at_observation": 0.84
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 111,
+          "z": -2.0542968276405564,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.14032528735632177,
+          "avg": 0.8700000000000001,
+          "fee": 0.009099999999999999,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788897000",
+          "remaining": 116,
+          "z": -2.7355960293580694,
+          "verified": true,
+          "ask_at_observation": 0.88
+        }
+      ]
+    },
+    "1:clean98_z2.5": {
+      "trades": 8,
+      "wins": 8,
+      "losses": 0,
+      "pnl": 0.6119262969750536,
+      "fees": 0.04200000000000001,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788848700",
+          "remaining": 81,
+          "z": -2.7745896544275017,
+          "verified": true,
+          "ask_at_observation": 0.93
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788848700",
+          "remaining": 81,
+          "z": -2.7745896544275017,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788860100",
+          "remaining": 120,
+          "z": 3.052601434690576,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.070368817204301,
+          "avg": 0.93,
+          "fee": 0.004899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 104,
+          "z": -2.8617037442993802,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 0.14032528735632177,
+          "avg": 0.8700000000000001,
+          "fee": 0.009099999999999999,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788897000",
+          "remaining": 116,
+          "z": -2.7355960293580694,
+          "verified": true,
+          "ask_at_observation": 0.88
+        }
+      ]
+    },
+    "1:clean98_z2.5_confirm3s": {
+      "trades": 3,
+      "wins": 3,
+      "losses": 0,
+      "pnl": 0.21135512617747393,
+      "fees": 0.014699999999999998,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.070368817204301,
+          "avg": 0.93,
+          "fee": 0.004899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 103,
+          "z": -2.8224685888201133,
+          "verified": true,
+          "ask_at_observation": 0.93
+        }
+      ]
+    },
+    "1:clean98_z3": {
+      "trades": 2,
+      "wins": 2,
+      "losses": 0,
+      "pnl": 0.11925957446808506,
+      "fees": 0.008400000000000008,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788860100",
+          "remaining": 120,
+          "z": 3.052601434690576,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788860100",
+          "remaining": 120,
+          "z": 3.052601434690576,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ]
+    },
+    "1:clean98_z3_confirm3s": {
+      "trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "pnl": 0.070368817204301,
+      "fees": 0.004899999999999997,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 0.070368817204301,
+          "avg": 0.93,
+          "fee": 0.004899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 115,
+          "z": -3.032015532821428,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 0.070368817204301,
+          "avg": 0.93,
+          "fee": 0.004899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 115,
+          "z": -3.032015532821428,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ]
+    },
+    "1:clean98_allwarnings_known": {
+      "trades": 6,
+      "wins": 6,
+      "losses": 0,
+      "pnl": 0.41197122238468936,
+      "fees": 0.028700000000000003,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.08135652173913038,
+          "avg": 0.92,
+          "fee": 0.005599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788873300",
+          "remaining": 109,
+          "z": -2.2299433617119218,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.05962978723404253,
+          "avg": 0.9400000000000001,
+          "fee": 0.004200000000000004,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 0.070368817204301,
+          "avg": 0.93,
+          "fee": 0.004899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 1,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 104,
+          "z": -2.8617037442993802,
+          "verified": true,
+          "ask_at_observation": 0.93
+        }
+      ]
+    },
+    "100:clean98": {
+      "trades": 11,
+      "wins": 11,
+      "losses": 0,
+      "pnl": 96.25843351057911,
+      "fees": 6.497800400000001,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788848700",
+          "remaining": 81,
+          "z": -2.7745896544275017,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788873300",
+          "remaining": 112,
+          "z": -2.083603333704249,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788874500",
+          "remaining": 107,
+          "z": -2.121706179778287,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 17.695729011764712,
+          "avg": 0.8417258350415416,
+          "fee": 1.1078004000000004,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877200",
+          "remaining": 101,
+          "z": 2.080708617622311,
+          "verified": true,
+          "ask_at_observation": 0.84
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 111,
+          "z": -2.0542968276405564,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 14.03252873563218,
+          "avg": 0.87,
+          "fee": 0.91,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788897000",
+          "remaining": 116,
+          "z": -2.7355960293580694,
+          "verified": true,
+          "ask_at_observation": 0.88
+        }
+      ]
+    },
+    "100:clean98_z2.5": {
+      "trades": 7,
+      "wins": 7,
+      "losses": 0,
+      "pnl": 55.22965097410113,
+      "fees": 3.7800000000000002,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788848700",
+          "remaining": 81,
+          "z": -2.7745896544275017,
+          "verified": true,
+          "ask_at_observation": 0.93
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788837900",
+          "remaining": 97,
+          "z": -2.585315527479999,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788848700",
+          "remaining": 81,
+          "z": -2.7745896544275017,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 7.036881720430098,
+          "avg": 0.93,
+          "fee": 0.4899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 104,
+          "z": -2.8617037442993802,
+          "verified": true,
+          "ask_at_observation": 0.93
+        },
+        {
+          "profit": 14.03252873563218,
+          "avg": 0.87,
+          "fee": 0.91,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788897000",
+          "remaining": 116,
+          "z": -2.7355960293580694,
+          "verified": true,
+          "ask_at_observation": 0.88
+        }
+      ]
+    },
+    "100:clean98_z2.5_confirm3s": {
+      "trades": 3,
+      "wins": 3,
+      "losses": 0,
+      "pnl": 20.65515473327474,
+      "fees": 1.43868893,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 6.556523835957443,
+          "avg": 0.9344465839515759,
+          "fee": 0.45868893000000005,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 103,
+          "z": -2.8224685888201133,
+          "verified": true,
+          "ask_at_observation": 0.93
+        }
+      ]
+    },
+    "100:clean98_z3": {
+      "trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "pnl": 5.962978723404263,
+      "fees": 0.42000000000000043,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ]
+    },
+    "100:clean98_z3_confirm3s": {
+      "trades": 1,
+      "wins": 1,
+      "losses": 0,
+      "pnl": 7.036881720430098,
+      "fees": 0.4899999999999997,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 7.036881720430098,
+          "avg": 0.93,
+          "fee": 0.4899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 115,
+          "z": -3.032015532821428,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 7.036881720430098,
+          "avg": 0.93,
+          "fee": 0.4899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 115,
+          "z": -3.032015532821428,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ]
+    },
+    "100:clean98_allwarnings_known": {
+      "trades": 6,
+      "wins": 6,
+      "losses": 0,
+      "pnl": 41.19712223846895,
+      "fees": 2.8700000000000006,
+      "below80": 0,
+      "first2": [
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        }
+      ],
+      "all_fills": [
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788847200",
+          "remaining": 99,
+          "z": -2.205469399688029,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788863100",
+          "remaining": 119,
+          "z": -2.6059227330738453,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 8.135652173913032,
+          "avg": 0.92,
+          "fee": 0.5599999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788867900",
+          "remaining": 117,
+          "z": -2.9993664356684553,
+          "verified": true,
+          "ask_at_observation": 0.92
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788873300",
+          "remaining": 109,
+          "z": -2.2299433617119218,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 5.962978723404263,
+          "avg": 0.94,
+          "fee": 0.42000000000000043,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788877500",
+          "remaining": 117,
+          "z": -3.101609318257666,
+          "verified": true,
+          "ask_at_observation": 0.94
+        },
+        {
+          "profit": 7.036881720430098,
+          "avg": 0.93,
+          "fee": 0.4899999999999997,
+          "win": true,
+          "below80": false,
+          "amount": 100,
+          "slug": "btc-updown-5m-1788896700",
+          "remaining": 104,
+          "z": -2.8617037442993802,
+          "verified": true,
+          "ask_at_observation": 0.93
+        }
+      ]
+    }
+  },
+  "external_fixed_replay_text": "SNAP 120 n 255 verified 239\nPRED 90 142 130 12\nEXEC 90 1 0 n 41 w 38 l 3 pnl 1.6016 below80 0\nEXEC 90 1 1000 n 39 w 36 l 3 pnl 1.0989 below80 2\nEXEC 90 100 0 n 41 w 38 l 3 pnl 153.0649 below80 0\nEXEC 90 100 1000 n 38 w 35 l 3 pnl 95.6183 below80 1\nPRED 98 89 88 1\nEXEC 98 1 0 n 21 w 21 l 0 pnl 2.2262 below80 0\nEXEC 98 1 1000 n 21 w 21 l 0 pnl 2.1331 below80 0\nEXEC 98 100 0 n 21 w 21 l 0 pnl 220.0576 below80 0\nEXEC 98 100 1000 n 20 w 20 l 0 pnl 203.3442 below80 0\nPRED clean98 33 33 0\nEXEC clean98 1 0 n 2 w 2 l 0 pnl 0.1193 below80 0\nEXEC clean98 1 1000 n 2 w 2 l 0 pnl 0.13 below80 0\nEXEC clean98 100 0 n 2 w 2 l 0 pnl 11.926 below80 0\nEXEC clean98 100 1000 n 1 w 1 l 0 pnl 7.0369 below80 0\nPRED clean_z3 25 25 0\nEXEC clean_z3 1 0 n 1 w 1 l 0 pnl 0.0596 below80 0\nEXEC clean_z3 1 1000 n 1 w 1 l 0 pnl 0.0596 below80 0\nEXEC clean_z3 100 0 n 1 w 1 l 0 pnl 5.963 below80 0\nEXEC clean_z3 100 1000 n 0 w 0 l 0 pnl 0 below80 0\nSNAP 90 n 260 verified 244\nPRED 90 169 163 6\nEXEC 90 1 0 n 24 w 20 l 4 pnl -1.8332 below80 0\nEXEC 90 1 1000 n 21 w 18 l 3 pnl -1.1145 below80 0\nEXEC 90 100 0 n 23 w 19 l 4 pnl -191.8975 below80 0\nEXEC 90 100 1000 n 20 w 17 l 3 pnl -121.5577 below80 0\nPRED 98 131 129 2\nEXEC 98 1 0 n 13 w 11 l 2 pnl -1.132 below80 0\nEXEC 98 1 1000 n 12 w 10 l 2 pnl -1.1912 below80 0\nEXEC 98 100 0 n 12 w 10 l 2 pnl -119.5421 below80 0\nEXEC 98 100 1000 n 11 w 9 l 2 pnl -126.0359 below80 0\nPRED clean98 38 38 0\nEXEC clean98 1 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean98 1 1000 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean98 100 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean98 100 1000 n 0 w 0 l 0 pnl 0 below80 0\nPRED clean_z3 32 32 0\nEXEC clean_z3 1 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean_z3 1 1000 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean_z3 100 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean_z3 100 1000 n 0 w 0 l 0 pnl 0 below80 0\nSNAP 60 n 257 verified 241\nPRED 90 180 178 2\nEXEC 90 1 0 n 2 w 2 l 0 pnl 0.2834 below80 0\nEXEC 90 1 1000 n 1 w 1 l 0 pnl 0.153 below80 0\nEXEC 90 100 0 n 2 w 2 l 0 pnl 27.6818 below80 0\nEXEC 90 100 1000 n 1 w 1 l 0 pnl 14.655 below80 0\nPRED 98 144 142 2\nEXEC 98 1 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC 98 1 1000 n 0 w 0 l 0 pnl 0 below80 0\nEXEC 98 100 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC 98 100 1000 n 0 w 0 l 0 pnl 0 below80 0\nPRED clean98 46 46 0\nEXEC clean98 1 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean98 1 1000 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean98 100 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean98 100 1000 n 0 w 0 l 0 pnl 0 below80 0\nPRED clean_z3 46 46 0\nEXEC clean_z3 1 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean_z3 1 1000 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean_z3 100 0 n 0 w 0 l 0 pnl 0 below80 0\nEXEC clean_z3 100 1000 n 0 w 0 l 0 pnl 0 below80 0\nDYNAMIC 98 1 n 31 w 29 l 2 pnl 0.8011 first2 [{'profit': 0.12796363636363647, 'avg': 0.8799999999999999, 'fee': 0.008400000000000001, 'win': True, 'below80': False, 'amount': 1, 'slug': 'btc-updown-5m-1788826500', 'remaining': 120}, {'profit': 0.1052770522803114, 'avg': 0.899, 'fee': 0.007069999999999999, 'win': True, 'below80': False, 'amount': 1, 'slug': 'btc-updown-5m-1788827100', 'remaining': 90}]\nDYNAMIC 98 100 n 29 w 27 l 2 pnl 63.2345 first2 [{'profit': 12.79636363636364, 'avg': 0.88, 'fee': 0.8400000000000001, 'win': True, 'below80': False, 'amount': 100, 'slug': 'btc-updown-5m-1788826500', 'remaining': 120}, {'profit': 10.36870304307361, 'avg': 0.9003643980345305, 'fee': 0.6974388638, 'win': True, 'below80': False, 'amount': 100, 'slug': 'btc-updown-5m-1788827100', 'remaining': 90}]\nDYNAMIC clean98 1 n 2 w 2 l 0 pnl 0.13 first2 [{'profit': 0.05962978723404253, 'avg': 0.9400000000000001, 'fee': 0.004200000000000004, 'win': True, 'below80': False, 'amount': 1, 'slug': 'btc-updown-5m-1788860100', 'remaining': 120}, {'profit': 0.070368817204301, 'avg': 0.93, 'fee': 0.004899999999999997, 'win': True, 'below80': False, 'amount': 1, 'slug': 'btc-updown-5m-1788867900', 'remaining': 120}]\nDYNAMIC clean98 100 n 1 w 1 l 0 pnl 7.0369 first2 [{'profit': 7.036881720430098, 'avg': 0.93, 'fee': 0.4899999999999997, 'win': True, 'below80': False, 'amount': 100, 'slug': 'btc-updown-5m-1788867900', 'remaining': 120}]\nDYNAMIC clean_z3 1 n 1 w 1 l 0 pnl 0.0596 first2 [{'profit': 0.05962978723404253, 'avg': 0.9400000000000001, 'fee': 0.004200000000000004, 'win': True, 'below80': False, 'amount': 1, 'slug': 'btc-updown-5m-1788860100', 'remaining': 120}]\nDYNAMIC clean_z3 100 n 0 w 0 l 0 pnl 0 first2 []\nEXTMODEL current brier 0.147 logloss 0.4565 98n 89 98w 88 98l 1\nEXTMODEL sigma1.5 brier 0.13893 logloss 0.41807 98n 40 98w 40 98l 0\nEXTMODEL fit_scale_floor brier 0.1426 logloss 0.43532 98n 52 98w 51 98l 1\nEXTMODEL sigma2 brier 0.13901 logloss 0.42428 98n 16 98w 16 98l 0\nEXTMODEL t3_wider brier 0.14247 logloss 0.43029 98n 25 98w 25 98l 0\nEXTMODEL empirical_residual brier 0.14303 logloss 0.43068 98n 35 98w 35 98l 0\nVERIFY 274 253\n",
+  "local_clean_results": {
+    "cap98_full_warning_inputs": {
+      "n": 223,
+      "wins": 221,
+      "losses": 2
+    },
+    "z2_5_full_warning_inputs": {
+      "n": 204,
+      "wins": 204,
+      "losses": 0
+    },
+    "z3_full_warning_inputs": {
+      "n": 174,
+      "wins": 174,
+      "losses": 0
+    }
+  }
+}

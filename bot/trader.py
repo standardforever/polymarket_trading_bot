@@ -1,4 +1,4 @@
-"""Optional bankroll paper trader; never places real orders."""
+"""Shared strategy, risk, ledger, and lifecycle for real-money execution."""
 
 import json
 import math
@@ -7,7 +7,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .strategy import (MAXIMUM_ADVERSE_PRICE_MOVE, RISK_RULE,
+from .strategy import (MAXIMUM_ADVERSE_PRICE_MOVE, MINIMUM_ENTRY_PRICE, RISK_RULE,
                        probability_from_decision)
 
 
@@ -60,26 +60,6 @@ def maximum_value_price(chance, fee_rate, minimum_edge):
     return low
 
 
-def simulated_fill(bankroll, price, visible_size, fee_rate, allocation_fraction=None,
-                   maximum_trade_usd=None, budget_multiplier=1.0):
-    budget = risk_adjusted_allocation(
-        bankroll, allocation_fraction, maximum_trade_usd, budget_multiplier)
-    unit_cost = price + fee_per_share(fee_rate, price)
-    if budget <= 0 or unit_cost <= 0:
-        return None, "no_money"
-    shares = budget / unit_cost
-    if visible_size is None:
-        return None, "unknown_size"
-    if visible_size + 1e-9 < shares:
-        return None, "insufficient_size"
-    fee = shares * fee_per_share(fee_rate, price)
-    cost = shares * price + fee
-    return {
-        "price": price, "shares": shares, "fee": fee, "cost": cost,
-        "allocation": budget, "assumption": "displayed_top_quote_only",
-    }, None
-
-
 def settle_fill(fill, predicted, actual):
     won = predicted == actual
     payout = fill["shares"] if won else 0.0
@@ -124,15 +104,14 @@ class JsonlTail:
             self.file.close()
 
 
-class PaperTrader:
+class TradingEngine:
     def __init__(self, data, bankroll, minimum_edge=.03, stop_entry_at_remaining=30.0,
                  poll=.25, model_threshold=.90,
                  allocation_fraction=None, maximum_trade_usd=None, max_trades=None,
                  target_profit_usd=None, max_loss_usd=None, run_id=None,
                  session_name=None, thin_gap_allocation_fraction=.25,
                  movement_disagreement_allocation_fraction=.5,
-                 execution_mode="paper", folder_name="paper-trading",
-                 file_prefix="paper", resume=False):
+                 resume=False):
         self.data = Path(data)
         self.starting_bankroll = self.bankroll = float(bankroll)
         self.minimum_edge = float(minimum_edge)
@@ -148,14 +127,13 @@ class PaperTrader:
         self.movement_disagreement_allocation_fraction = float(
             movement_disagreement_allocation_fraction)
         self.session_name = session_name
-        self.execution_mode = execution_mode
         stamp = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
         self.run_id = stamp
-        self.folder = self.data / folder_name
+        self.folder = self.data / "real-trading" / "sessions"
         self.folder.mkdir(parents=True, exist_ok=True)
-        self.file_prefix = file_prefix
-        self.log_path = self.folder / f"{file_prefix}-{stamp}.jsonl"
-        self.status_path = self.folder / f"{file_prefix}-{stamp}-status.json"
+        self.log_path = self.folder / f"real-{stamp}.jsonl"
+        self.status_path = self.folder / f"real-{stamp}-status.json"
+        self.session_started_ms = (time.time_ns() // 1_000_000) if resume else 0
         prior_status = {}
         if resume and self.status_path.exists():
             try:
@@ -163,8 +141,12 @@ class PaperTrader:
             except (OSError, ValueError):
                 prior_status = {}
         self.log_file = self.log_path.open("a" if resume else "x", buffering=1)
-        self.history = JsonlTail(self.data / "round-history.jsonl", start_at_end=True)
-        self.candidates, self.positions, self.handled = {}, {}, set()
+        # A resumed process must replay persisted decisions and resolutions that
+        # may have arrived while the API was offline. The handled ledger below
+        # prevents old completed rounds from being acted on again.
+        self.history = JsonlTail(
+            self.data / "round-history.jsonl", start_at_end=not resume)
+        self.candidates, self.positions, self.resolved_trades, self.handled = {}, {}, {}, set()
         if resume and self.log_path.exists():
             try:
                 prior_events = [json.loads(line) for line in
@@ -172,6 +154,10 @@ class PaperTrader:
             except (OSError, ValueError):
                 prior_events = []
             for event in prior_events:
+                if (event.get("event") == "run_started"
+                        and event.get("recorded_ms") is not None):
+                    self.session_started_ms = min(
+                        self.session_started_ms, int(event["recorded_ms"]))
                 slug = event.get("slug")
                 if not slug:
                     continue
@@ -186,7 +172,28 @@ class PaperTrader:
                     self.handled.add(slug)
                 elif event.get("event") == "trade_resolved":
                     self.positions.pop(slug, None)
+                    self.resolved_trades[slug] = event
                     self.handled.add(slug)
+                elif event.get("event") in {
+                        "signal_rejected", "entry_expired", "entry_cancelled",
+                        "order_rejected", "order_submission_uncertain"}:
+                    self.handled.add(slug)
+            # If the process exited after posting an order but before its
+            # session ledger was updated, retrying the same round could buy
+            # twice. Treat every previously submitted slug as handled. A
+            # confirmed fill remains recoverable through account/history
+            # reconciliation, while future rounds continue normally.
+            audit_path = self.data / "real-trading" / "manual-orders.jsonl"
+            try:
+                audit_events = [json.loads(line) for line in
+                                audit_path.read_text().splitlines()]
+            except (OSError, ValueError):
+                audit_events = []
+            for event in audit_events:
+                if (event.get("event") == "automatic_order_submitted"
+                        and event.get("run_id") == self.run_id
+                        and event.get("slug")):
+                    self.handled.add(event["slug"])
         self.quote_tails = {}
         self.starting_bankroll = float(prior_status.get(
             "starting_bankroll", self.starting_bankroll))
@@ -199,6 +206,7 @@ class PaperTrader:
         self.accepting_entries = True
         self.stop_requested_reason = None
         self.stop_reason = None
+        self.suspend_requested = False
         self.write("run_resumed" if resume else "run_started",
                    starting_bankroll=self.starting_bankroll,
                    resumed_bankroll=self.bankroll if resume else None,
@@ -215,9 +223,7 @@ class PaperTrader:
                        self.movement_disagreement_allocation_fraction),
                    risk_rule=RISK_RULE,
                    risk_action="skip",
-                   session_name=self.session_name,
-                   execution_mode=self.execution_mode,
-                   paper_only=self.execution_mode == "paper")
+                   session_name=self.session_name)
         self.write_status("POSITION_OPEN" if self.positions else "WAITING_FOR_SIGNAL",
                           resumed=bool(resume))
 
@@ -239,7 +245,6 @@ class PaperTrader:
         payload = {
             "updated_ms": time.time_ns() // 1_000_000,
             "run_id": self.run_id,
-            "execution_mode": self.execution_mode,
             "status": status,
             "starting_bankroll": round(self.starting_bankroll, 6),
             "available_bankroll": round(self.bankroll, 6),
@@ -281,8 +286,12 @@ class PaperTrader:
         """Request a safe stop; open positions remain tracked until resolution."""
         self.stop_requested_reason = reason
 
+    def request_suspend(self):
+        """Pause this process without ending the persisted trading session."""
+        self.suspend_requested = True
+
     def update_configuration(self, changes):
-        """Apply validated session rules while the paper trader is running."""
+        """Apply validated rules while the real trader is running."""
         attribute_names = {
             "allocation_fraction": "allocation_fraction",
             "maximum_trade_usd": "maximum_trade_usd",
@@ -353,6 +362,13 @@ class PaperTrader:
         if slug in self.handled or slug in self.candidates or slug in self.positions:
             return
         try:
+            decision_ms = int(row["decision_ms"])
+        except (KeyError, TypeError, ValueError):
+            return
+        if decision_ms < self.session_started_ms:
+            self.handled.add(slug)
+            return
+        try:
             probability = probability_from_decision(row)
             p_up = float(probability["p_up"])
             p_down = float(probability["p_down"])
@@ -418,7 +434,6 @@ class PaperTrader:
             self.handled.add(slug)
             self.write("signal_rejected", slug=slug, reason="invalid_fee_rate")
             return
-        decision_ms = int(row["decision_ms"])
         market_end_ms = (int(row["start"]) + 300) * 1000
         candidate = {
             "slug": slug, "start": int(row["start"]), "side": side,
@@ -438,6 +453,7 @@ class PaperTrader:
             "spot_gap_bps": settlement.get("spot_gap_bps"),
             "twap_gap_bps": settlement.get("twap_gap_bps"),
             "maximum_adverse_price_move": MAXIMUM_ADVERSE_PRICE_MOVE,
+            "minimum_entry_price": MINIMUM_ENTRY_PRICE,
             "risk_allocation_multiplier": risk_multiplier,
             "rejections": Counter(), "best_ask": None,
         }
@@ -455,69 +471,7 @@ class PaperTrader:
               f"remaining, up to ${candidate['maximum_value_price']:.3f}", flush=True)
 
     def consider_quotes(self, candidate, record):
-        observed_ms = int(record.get("received_ms", 0))
-        if observed_ms < candidate["entry_start_ms"] or observed_ms >= candidate["deadline_ms"]:
-            return
-        quote = (record.get("quotes") or {}).get(candidate["side"], {})
-        if not quote.get("ready") or quote.get("ask") is None:
-            candidate["rejections"]["ask_unavailable"] += 1
-            return
-        connection_age = quote.get("connection_age_ms")
-        if connection_age is not None and not -1000 <= connection_age <= 25000:
-            candidate["rejections"]["connection_unhealthy"] += 1
-            return
-        price = float(quote["ask"])
-        candidate["best_ask"] = (price if candidate["best_ask"] is None
-                                  else min(candidate["best_ask"], price))
-        signal_ask = candidate.get("signal_ask")
-        adverse_limit = candidate.get("maximum_adverse_price_move")
-        if (adverse_limit is not None and signal_ask is not None
-                and float(signal_ask) - price > float(adverse_limit) + 1e-12):
-            candidate["rejections"]["adverse_price_move_requires_confirmation"] += 1
-            return
-        if price > candidate["maximum_value_price"] + 1e-12:
-            candidate["rejections"]["edge_below_minimum"] += 1
-            return
-        size = float(quote["ask_size"]) if quote.get("ask_size") is not None else None
-        fill, reason = simulated_fill(
-            self.bankroll, price, size, candidate["fee_rate"],
-            self.allocation_fraction, self.maximum_trade_usd,
-            candidate["risk_allocation_multiplier"])
-        if fill is None:
-            candidate["rejections"][reason] += 1
-            return
-        slug = candidate["slug"]
-        self.bankroll -= fill["cost"]
-        if abs(self.bankroll) < 1e-9:
-            self.bankroll = 0.0
-        position = {key: value for key, value in candidate.items() if key != "rejections"}
-        position.update(fill=fill, entry_ms=observed_ms,
-                        entry_delay_seconds=(observed_ms - candidate["decision_ms"]) / 1000,
-                        entry_remaining_seconds=(candidate["market_end_ms"] - observed_ms) / 1000)
-        self.positions[slug] = position
-        self.candidates.pop(slug, None)
-        self._close_round_tail(candidate["start"])
-        self.trade_count += 1
-        self.write("trade_filled", slug=slug, side=candidate["side"],
-                   forecast_probability=candidate["chance"],
-                   maximum_value_price=candidate["maximum_value_price"],
-                   entry_ms=observed_ms,
-                   entry_delay_seconds=position["entry_delay_seconds"],
-                   entry_remaining_seconds=position["entry_remaining_seconds"],
-                   price=fill["price"], shares=fill["shares"], fee=fill["fee"],
-                   trade_cost=fill["cost"], bankroll_after_entry=self.bankroll,
-                   thin_gap=candidate["thin_gap"],
-                   movement_disagreement=candidate["movement_disagreement"],
-                   risk_allocation_multiplier=candidate["risk_allocation_multiplier"],
-                   assumption=fill["assumption"])
-        self.write_status("POSITION_OPEN", slug=slug, side=candidate["side"],
-                          entry_price=round(fill["price"], 6),
-                          shares=round(fill["shares"], 6),
-                          trade_cost=round(fill["cost"], 6))
-        if self.max_trades is not None and self.trade_count >= self.max_trades:
-            self._begin_stop("maximum_trades_reached")
-        print(f"PAPER FILL {slug}: {candidate['side']} {fill['shares']:.4f} shares "
-              f"at ${fill['price']:.3f}; cost ${fill['cost']:.2f}", flush=True)
+        raise NotImplementedError
 
     def expire_candidates(self, now_ms):
         for slug, candidate in list(self.candidates.items()):
@@ -538,6 +492,46 @@ class PaperTrader:
         slug = row.get("slug")
         position = self.positions.pop(slug, None)
         if position is None:
+            prior = self.resolved_trades.get(slug)
+            actual = row.get("actual_result")
+            source = row.get("resolution_source", "collector")
+            if (prior is not None and actual in ("Up", "Down")
+                    and source != "account_position"
+                    and prior.get("actual") != actual):
+                predicted = prior.get("predicted")
+                fill = {
+                    "shares": float(prior.get("shares") or 0),
+                    "cost": float(prior.get("trade_cost") or 0),
+                }
+                corrected = settle_fill(fill, predicted, actual)
+                old_profit = float(prior.get("profit") or 0)
+                old_won = prior.get("won") is True
+                self.realized_profit += corrected["profit"] - old_profit
+                self.wins += int(corrected["won"]) - int(old_won)
+                self.losses += int(not corrected["won"]) - int(not old_won)
+                self.bankroll = self.settlement_available_bankroll(self.bankroll)
+                fields = {
+                    "slug": slug, "predicted": predicted, "actual": actual,
+                    "won": corrected["won"],
+                    "entry_price": prior.get("entry_price"),
+                    "shares": fill["shares"], "fee": prior.get("fee", 0),
+                    "trade_cost": fill["cost"], "payout": corrected["payout"],
+                    "profit": corrected["profit"], "bankroll": self.bankroll,
+                    "resolution_source": source,
+                    "opening_price": row.get("opening_price"),
+                    "final_price": row.get("final_price"),
+                    "official_correction": True,
+                    "previous_actual": prior.get("actual"),
+                    "previous_profit": old_profit,
+                }
+                self.write("trade_resolved", **fields)
+                self.resolved_trades[slug] = fields
+                self.write_status(
+                    "WAITING_FOR_SIGNAL" if self.accepting_entries else "STOPPING",
+                    last_slug=slug,
+                    last_result="WIN" if corrected["won"] else "LOSS",
+                    last_trade_profit=round(corrected["profit"], 6),
+                    official_correction=True)
             candidate = self.candidates.pop(slug, None)
             if candidate is not None:
                 self._close_round_tail(candidate["start"])
@@ -567,7 +561,15 @@ class PaperTrader:
                    profit=result["profit"], bankroll=self.bankroll,
                    resolution_source=row.get("resolution_source", "collector"),
                    opening_price=row.get("opening_price"), final_price=row.get("final_price"))
-        print(f"{self.execution_mode.upper()} {'WIN' if result['won'] else 'LOSS'} {slug}: "
+        self.resolved_trades[slug] = {
+            "slug": slug, "predicted": position["side"], "actual": actual,
+            "won": result["won"], "entry_price": position["fill"]["price"],
+            "shares": position["fill"]["shares"], "fee": position["fill"]["fee"],
+            "trade_cost": position["fill"]["cost"], "payout": result["payout"],
+            "profit": result["profit"],
+            "resolution_source": row.get("resolution_source", "collector"),
+        }
+        print(f"REAL {'WIN' if result['won'] else 'LOSS'} {slug}: "
               f"profit ${result['profit']:.2f}; bankroll ${self.bankroll:.2f}", flush=True)
         if self.bankroll <= 1e-9 and not self.positions:
             self.bankroll = 0.0
@@ -591,7 +593,7 @@ class PaperTrader:
                               last_trade_profit=round(result["profit"], 6))
 
     def settlement_available_bankroll(self, calculated_bankroll):
-        """Return spendable cash after settlement; paper payouts are immediate."""
+        """Return spendable cash after settlement."""
         return calculated_bankroll
 
     def process_history(self, accept_signals=True):
@@ -625,13 +627,19 @@ class PaperTrader:
         self.log_file.close()
 
     def run(self):
-        label = self.execution_mode.capitalize()
+        label = "Real"
         print(f"{label} trader log: {self.log_path}", flush=True)
         print(f"{label} trader status: {self.status_path}", flush=True)
-        print(f"Starting {self.execution_mode} bankroll: ${self.bankroll:.2f}", flush=True)
+        print(f"Starting real bankroll: ${self.bankroll:.2f}", flush=True)
         interrupted = False
         try:
             while self.running:
+                if self.suspend_requested:
+                    self.write("runtime_suspended", bankroll=self.bankroll,
+                               realized_profit=self.realized_profit,
+                               trades=self.trade_count)
+                    self.write_status("RESTARTING", reason="runtime_restart")
+                    break
                 if self.stop_requested_reason is not None and self.stop_reason is None:
                     self._begin_stop(self.stop_requested_reason)
                     if not self.running:
@@ -643,6 +651,6 @@ class PaperTrader:
                 time.sleep(self.poll)
         except KeyboardInterrupt:
             interrupted = True
-            print("Paper trader stopped by user; live collection is unaffected.", flush=True)
+            print("Real trader stopped by user; live collection is unaffected.", flush=True)
         finally:
             self.close(interrupted)

@@ -63,7 +63,7 @@ def _vote(values, deadband=1e-12):
 
 
 def analytic_signal(component_rows, quotes, taker_fee_rate):
-    """Conservative no-training paper signal based on component agreement.
+    """Conservative no-training signal based on component agreement.
 
     Its normal-distribution probability is an engineering approximation, not a
     calibrated forecast.  It must remain distinguishable from a trained model.

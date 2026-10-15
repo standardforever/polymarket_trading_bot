@@ -47,6 +47,33 @@ class HistoryMigrationTests(unittest.TestCase):
             self.assertFalse(result["migrated"])
             self.assertTrue((data / "round-history.jsonl").exists())
 
+    def test_post_migration_rows_are_merged_without_overwriting_archive(self):
+        with tempfile.TemporaryDirectory() as folder:
+            data = Path(folder)
+            (data / "round-history.jsonl").write_text(json.dumps({
+                "record_type": "decision", "slug": "existing", "recorded_ms": 1,
+                "direction": "SKIP",
+            }) + "\n")
+            archive = data / "archive" / "legacy-history"
+            archive.mkdir(parents=True)
+            original_archive = archive / "stage4-round-history.jsonl"
+            original_archive.write_text("original archive\n")
+            late = data / "stage4-round-history.jsonl"
+            late.write_text(json.dumps({
+                "record_type": "decision", "slug": "late", "recorded_ms": 2,
+                "direction": "Up", "p_up": .95, "p_down": .05,
+            }) + "\n")
+
+            result = prepare_history(data)
+
+            rows = [json.loads(line) for line in
+                    (data / "round-history.jsonl").read_text().splitlines()]
+            self.assertEqual({row["slug"] for row in rows}, {"existing", "late"})
+            self.assertEqual(result["merged_post_migration_rows"], 1)
+            self.assertEqual(original_archive.read_text(), "original archive\n")
+            self.assertTrue((archive /
+                             "post-migration-stage4-round-history.jsonl").exists())
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -89,7 +89,7 @@ function prepareMobileTables() {
 function renderLive() {
   const live = state.live || {};
   const prediction = live.prediction || {};
-  const paper = live.trading || live.paper;
+  const trading = live.trading;
   const primary = prediction;
   const direction = primary.direction || "—";
   const pUp = primary.p_up == null ? null : Number(primary.p_up);
@@ -104,7 +104,7 @@ function renderLive() {
   $("countdown").dataset.remaining = prediction.remaining_seconds ?? "";
   $("countdown").dataset.updated = prediction.updated_ms ?? Date.now();
   $("countdown").textContent = fmt.time(prediction.remaining_seconds);
-  $("bankroll").textContent = paper ? fmt.usd(paper.available_bankroll) : "Not running";
+  $("bankroll").textContent = trading ? fmt.usd(trading.available_bankroll) : "Not running";
   $("directionArrow").textContent = direction === "Up" ? "↗" : direction === "Down" ? "↘" : isSkip ? "×" : "·";
   $("upProbability").textContent = fmt.percent(pUp);
   $("downProbability").textContent = fmt.percent(pDown);
@@ -128,7 +128,7 @@ function renderLive() {
   $("warnings").innerHTML = (primary.warnings || []).map(w => `<span class="warning-chip">⚠ ${w.replaceAll("_", " ")}</span>`).join("");
   renderAgreement(primary.agreement || {}, direction);
   renderStability(prediction.market_stability || {});
-  renderPaperControl();
+  renderTradingControl();
 }
 
 function assessRisk(prediction, canTrade) {
@@ -190,7 +190,8 @@ function humanReason(reason, fallback) {
     analytic_combined_risk: "BTC is close to the opening price while movement disagrees or the recent path is choppy and upward.",
     combined_risk: "The close-to-line risk guard blocked this entry.",
     confidence_below_threshold: "The forecast did not reach the session confidence threshold.",
-    adverse_price_move_requires_confirmation: "The contract price moved more than 15¢ against the original signal before a fill was available.",
+    adverse_price_move_requires_confirmation: "The contract price moved more than 10¢ below the original signal before a fill was available.",
+    price_below_entry_floor: "The contract is not above the hard 80¢ entry floor.",
     "analytic_disagreement:market": "The settlement estimate and Polymarket direction disagree.",
     analytic_edge_below_threshold: "The available price is too expensive for the required profit margin.",
     analytic_liquidity_unavailable: "There is not enough reliable liquidity at the best price.",
@@ -524,7 +525,7 @@ function selectOutcome(side) {
 
 function renderStatistics() {
   const s = state.dashboard?.statistics || {};
-  const values = [["Evaluated rounds", s.rounds ?? 0], ["Signals", s.signals ?? 0], ["Signal accuracy", fmt.percent(s.signal_accuracy)], ["Paper trades", s.paper_trades ?? 0], ["Realized P&L", fmt.usd(s.realized_profit)]];
+  const values = [["Evaluated rounds", s.rounds ?? 0], ["Directional signals", s.signals ?? 0], ["Resolved signal accuracy", fmt.percent(s.signal_accuracy)], ["Automated real trades", s.trades ?? 0], ["Realized real P&L", fmt.usd(s.realized_profit)]];
   $("metrics").innerHTML = values.map(([label,value]) => `<div class="metric"><span>${label}</span><b>${value}</b></div>`).join("");
 }
 
@@ -536,16 +537,13 @@ async function loadRounds() {
   if ($("resultFilter").value) query.set("result", $("resultFilter").value);
   if ($("predictionFilter").value) query.set("prediction", $("predictionFilter").value);
   if ($("tradedFilter").value) query.set("traded", $("tradedFilter").value);
-  if ($("tradeModeFilter").value) query.set("trade_mode", $("tradeModeFilter").value);
   const result = await request(`/api/v1/rounds?${query}`);
   state.rounds = result.items;
   Object.assign(page, { total: result.total, offset: result.offset, limit: result.limit });
   $("historyBody").innerHTML = state.rounds.map(row => {
     const confidence = row.prediction === "Up" ? row.p_up : row.prediction === "Down" ? row.p_down : Math.max(Number(row.p_up || 0), Number(row.p_down || 0));
     const market = `Up ${fmt.cents(row.market_up_ask)} · Down ${fmt.cents(row.market_down_ask)}`;
-    const tradeLabel = row.trade_modes?.length
-      ? row.trade_modes.map(mode => mode === "real" ? "Real" : "Paper").join(" + ")
-      : row.traded ? "Yes" : "No";
+    const tradeLabel = row.traded ? "Real" : "No";
     return `<tr data-slug="${row.slug}"><td><b>${fmt.date(row.start)}</b><br><small class="mono">${row.slug.replace("btc-updown-5m-", "#")}</small></td><td class="${sideClass(row.prediction)}"><b>${row.prediction}</b></td><td class="mono">${fmt.percent(confidence)}</td><td class="mono">${market}</td><td>${row.actual || "—"}</td><td>${badge(row.result)}</td><td class="mono">${fmt.percent(row.estimated_edge)}</td><td>${tradeLabel}</td></tr>`;
   }).join("");
   $("historyEmpty").classList.toggle("hidden", state.rounds.length > 0);
@@ -573,9 +571,9 @@ function isTerminalSession(session) {
 function riskRuleText() {
   return {
     title: "Combined-risk protection",
-    copy: "A conservative spot-or-TWAP thin gap combined with movement disagreement or choppy-up is skipped. Entry also pauses when the selected contract falls more than 15¢ from its signal price.",
-    budget: "Combined risk: SKIP · adverse move: 15¢ max",
-    session: "combined close-to-line risk skipped; 15¢ adverse-move guard",
+    copy: "A conservative spot-or-TWAP thin gap combined with movement disagreement or choppy-up is skipped. Entry waits at or below 80¢ or after a fall of more than 10¢ from the signal price, and can resume if the price recovers before cutoff.",
+    budget: "Combined risk: SKIP · entry floor: 80¢ · adverse move: 10¢ max",
+    session: "combined close-to-line risk skipped; 80¢ floor; 10¢ adverse-move guard",
   };
 }
 
@@ -587,13 +585,13 @@ function activeSession() {
 function sessionAvailable(session) {
   const active = activeSession();
   const liveCash = Number(state.account?.balance_usdc);
-  if (session?.mode === "real" && session?.session_id === active?.session_id
+  if (session?.session_id === active?.session_id
       && state.account?.connected && Number.isFinite(liveCash)) return liveCash;
   return session?.status_detail?.available_bankroll;
 }
 
 function liveTradeState(trade, session) {
-  if (session?.mode !== "real" || trade.status !== "OPEN") return trade;
+  if (trade.status !== "OPEN") return trade;
   const position = (state.account?.positions || []).find(row =>
     row.slug === trade.slug && row.outcome === trade.side);
   const start = Number(String(trade.slug || "").split("-").at(-1));
@@ -609,8 +607,8 @@ function liveTradeState(trade, session) {
       : -Number(trade.cost || 0), liveSettlement: true };
 }
 
-function renderPaperControl() {
-  const runtime = Boolean(state.dashboard?.capabilities?.paper_session_runtime);
+function renderTradingControl() {
+  const runtime = Boolean(state.dashboard?.capabilities?.automatic_real_trading);
   const active = activeSession();
   const stopping = active?.status === "STOPPING";
   const accepting = Boolean(active?.status_detail?.accepting_entries) && !stopping;
@@ -618,20 +616,19 @@ function renderPaperControl() {
   $("autoTradingToggle").disabled = !runtime || stopping;
   $("autoTradingStatus").textContent = !runtime ? "UNAVAILABLE" : active ? active.status.replaceAll("_", " ") : "READY";
   $("autoTradingStatus").className = `pill ${accepting ? "signal" : active ? "warning" : "muted"}`;
-  const mode = active?.mode || "paper";
   $("autoTradingCopy").textContent = !runtime
     ? "Trading sessions require the collector runtime."
     : active
-      ? `${mode.toUpperCase()} · ${active.name} · ${fmt.usd(sessionAvailable(active))} available cash · entries stop at ${fmt.num(active.configuration.entry_cutoff_seconds, 0)} seconds.`
-      : "Create a paper or real session, set its balance-based limits, then let the bot monitor entries.";
+      ? `REAL · ${active.name} · ${fmt.usd(sessionAvailable(active))} available cash · entries stop at ${fmt.num(active.configuration.entry_cutoff_seconds, 0)} seconds.`
+      : "Create a real-money session, set its balance-based limits, then let the bot monitor entries.";
 }
 
 function renderSessionList() {
   state.sessions.sort((a, b) => Number(b.created_ms || 0) - Number(a.created_ms || 0));
   $("sessionsEmpty").classList.toggle("hidden", state.sessions.length > 0);
-  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${String(session.mode || "paper").toUpperCase()} · ${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>CASH<b>${fmt.usd(sessionAvailable(session))}</b></span><span>TRADES<b>${session.trade_count}</b></span><span>P&amp;L<b class="${session.realized_profit >= 0 ? "positive" : "negative"}">${fmt.usd(session.realized_profit)}</b></span></div></button>`).join("");
-  document.querySelectorAll(".session-item").forEach(button => button.addEventListener("click", () => selectPaperSession(button.dataset.sessionId)));
-  renderPaperControl();
+  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>CASH<b>${fmt.usd(sessionAvailable(session))}</b></span><span>TRADES<b>${session.trade_count}</b></span><span>P&amp;L<b class="${session.realized_profit >= 0 ? "positive" : "negative"}">${fmt.usd(session.realized_profit)}</b></span></div></button>`).join("");
+  document.querySelectorAll(".session-item").forEach(button => button.addEventListener("click", () => selectSession(button.dataset.sessionId)));
+  renderTradingControl();
 }
 
 function renderSessionDetail() {
@@ -651,7 +648,7 @@ function renderSessionDetail() {
       config.max_loss_usd ? `${fmt.usd(config.max_loss_usd)} loss limit` : null].filter(Boolean);
     const allocationRule = session.legacy ? "legacy 80% / below-$20 rule" : `${fmt.percent(config.allocation_fraction, 0)} of balance per trade`;
     const riskRules = session.legacy ? "legacy risk sizing" : `thin gap ${fmt.percent(config.thin_gap_allocation_fraction ?? .25, 0)} · movement warning ${fmt.percent(config.movement_disagreement_allocation_fraction ?? .5, 0)} · ${riskRuleText().session}`;
-    $("sessionRules").textContent = `${String(session.mode || "paper").toUpperCase()} · ${fmt.percent(config.model_threshold)} confidence · ${fmt.percent(config.minimum_edge)} edge · ${allocationRule} · ${riskRules} · stop entries at ${fmt.num(config.entry_cutoff_seconds, 0)}s · ${stopRules.join(" · ")}`;
+    $("sessionRules").textContent = `REAL · ${fmt.percent(config.model_threshold)} confidence · ${fmt.percent(config.minimum_edge)} edge · ${allocationRule} · ${riskRules} · stop entries at ${fmt.num(config.entry_cutoff_seconds, 0)}s · ${stopRules.join(" · ")}`;
     const values = [["Starting", fmt.usd(config.starting_bankroll)], ["Available cash", fmt.usd(sessionAvailable(session))], ["Trades", session.trade_count], ["Wins / losses", `${session.wins} / ${session.losses}`], ["Realized P&L", fmt.usd(session.realized_profit)]];
     $("tradeMetrics").innerHTML = values.map(([label,value]) => `<div class="metric"><span>${label}</span><b>${value}</b></div>`).join("");
     const editable = activeSession()?.session_id === session.session_id && !isTerminalSession(session);
@@ -679,7 +676,7 @@ function sessionEventDescription(event) {
   if (event.event === "entry_expired") return `${round} · no acceptable fill before the entry cutoff`;
   if (event.event === "entry_cancelled") return `${round} · ${String(event.reason || "cancelled").replaceAll("_", " ")}`;
   if (event.event === "session_stopped" || event.event === "game_over") return String(event.reason || "session ended").replaceAll("_", " ");
-  if (event.event === "run_started") return `Started in ${(event.execution_mode || "paper").toUpperCase()} mode with ${fmt.usd(event.starting_bankroll)}`;
+  if (event.event === "run_started") return `Started with ${fmt.usd(event.starting_bankroll)} available cash`;
   if (event.event === "order_preflight_rejected") return `${round} · exchange preflight: ${event.message || "rejected"}`;
   if (event.event === "order_submission_uncertain") return `${round} · submission result uncertain; retry suppressed to prevent a duplicate order`;
   if (event.event === "order_rejected") return `${round} · Polymarket rejected the FOK order`;
@@ -688,7 +685,7 @@ function sessionEventDescription(event) {
   return round || String(event.reason || "Session state updated").replaceAll("_", " ");
 }
 
-async function selectPaperSession(sessionId) {
+async function selectSession(sessionId) {
   state.selectedSessionId = sessionId;
   state.pages.trades.offset = 0;
   state.pages.events.offset = 0;
@@ -729,7 +726,7 @@ async function reloadSelectedSession() {
   renderSessionDetail();
 }
 
-async function loadPaperSessions() {
+async function loadSessions() {
   const page = state.pages.sessions;
   const result = await request(`/api/v1/trading/sessions?limit=${page.limit}&offset=${page.offset}`);
   const serverPaged = Number.isFinite(Number(result.total));
@@ -741,7 +738,7 @@ async function loadPaperSessions() {
     offset: result.offset ?? page.offset, limit: result.limit ?? page.limit });
   if (page.offset >= page.total && page.total) {
     page.offset = Math.floor((page.total - 1) / page.limit) * page.limit;
-    return loadPaperSessions();
+    return loadSessions();
   }
   if (!state.selectedSessionId || !state.sessions.some(session => session.session_id === state.selectedSessionId)) {
     state.selectedSessionId = state.sessions[0]?.session_id || null;
@@ -761,7 +758,7 @@ async function toggleAutomaticTrading(event) {
   const toggle = event.currentTarget;
   const active = activeSession();
   if (toggle.checked && !active) {
-    openPaperSessionDialog();
+    openSessionDialog();
     return;
   }
   if (!toggle.checked && active) {
@@ -771,8 +768,8 @@ async function toggleAutomaticTrading(event) {
       active.status = "STOPPING";
       active.status_detail.accepting_entries = false;
       renderSessionList();
-      toast(`${String(active.mode || "paper").toUpperCase()} session is stopping`);
-    } catch (error) { toast(error.message); await loadPaperSessions(); }
+      toast("Real-money session is stopping");
+    } catch (error) { toast(error.message); await loadSessions(); }
   }
 }
 
@@ -804,41 +801,29 @@ function riskBudgetCopy(bankroll, fraction, cap, thinFraction, movementFraction)
   return `${describe("Thin gap", thinFraction)} · ${describe("Movement warning", movementFraction)} · ${riskRuleText().budget} · fees separate`;
 }
 
-function syncSessionMode() {
-  const form = $("paperSessionForm");
-  const real = form.elements.mode.value === "real";
+function syncSessionBalance() {
+  const form = $("sessionForm");
   const cash = Number(state.account?.balance_usdc);
   const accountReady = Boolean(state.account?.connected
                                && Number.isFinite(cash) && cash >= 1);
-  const bankroll = form.elements.starting_bankroll;
-  bankroll.readOnly = real;
-  bankroll.required = !real;
-  if (real) bankroll.value = Number.isFinite(cash) ? cash.toFixed(2) : "";
-  $("startingBankrollCopy").textContent = real
-    ? "Live available USDC from your connected Polymarket account."
-    : "Simulated money for this session.";
-  $("sessionModeCopy").textContent = real
-    ? "Qualified signals submit bounded fill-or-kill orders automatically. There is no confirmation for each trade after activation."
-    : "Uses a simulated bankroll and never submits an exchange order.";
-  $("startSessionButton").textContent = real ? "Activate real-money bot" : "Start paper session";
-  $("startSessionButton").disabled = real && !accountReady;
+  $("startSessionButton").disabled = !accountReady;
   for (const name of ["maximum_trade_usd", "max_loss_usd"]) {
     const input = form.elements[name];
-    if (real && Number.isFinite(cash)) {
+    if (Number.isFinite(cash)) {
       input.max = String(cash);
       if (input.value && Number(input.value) > cash) input.value = cash.toFixed(2);
     } else {
       input.removeAttribute("max");
     }
   }
-  form.elements.maximum_trade_usd.min = real ? "1" : "0.01";
-  if (real && form.elements.maximum_trade_usd.value
+  form.elements.maximum_trade_usd.min = "1";
+  if (form.elements.maximum_trade_usd.value
       && Number(form.elements.maximum_trade_usd.value) < 1) {
     form.elements.maximum_trade_usd.value = "1.00";
   }
-  if (real && !accountReady) {
+  if (!accountReady) {
     $("sessionFormMessage").textContent = state.account?.error ||
-      "Connect a Polymarket account with at least $1 available before activating real mode.";
+      "Connect a Polymarket account with at least $1 available before activating the bot.";
   } else if ($("sessionFormMessage").textContent.includes("Polymarket account")) {
     $("sessionFormMessage").textContent = "";
   }
@@ -846,9 +831,8 @@ function syncSessionMode() {
 }
 
 function updateSessionBudgetPreview() {
-  const form = $("paperSessionForm");
-  const bankroll = form.elements.mode.value === "real"
-    ? Number(state.account?.balance_usdc) : Number(form.elements.starting_bankroll.value);
+  const form = $("sessionForm");
+  const bankroll = Number(state.account?.balance_usdc);
   const fraction = Number(form.elements.allocation_percent.value) / 100;
   const cap = optionalFormNumber(form, "maximum_trade_usd");
   const normal = executableBudget(bankroll, fraction, cap);
@@ -860,10 +844,8 @@ function updateSessionBudgetPreview() {
 }
 
 function updateEditSessionBudgetPreview() {
-  const form = $("paperSessionEditForm");
-  const bankroll = state.sessionDetail?.mode === "real"
-    ? Number(state.account?.balance_usdc)
-    : Number(state.sessionDetail?.status_detail?.available_bankroll);
+  const form = $("sessionEditForm");
+  const bankroll = Number(state.account?.balance_usdc);
   const fraction = Number(form.elements.allocation_percent.value) / 100;
   const cap = optionalFormNumber(form, "maximum_trade_usd");
   const normal = executableBudget(bankroll, fraction, cap);
@@ -881,7 +863,7 @@ function openEditSessionDialog() {
     return;
   }
   const config = session.configuration;
-  const form = $("paperSessionEditForm");
+  const form = $("sessionEditForm");
   form.elements.name.value = session.name || "";
   form.elements.allocation_percent.value = Number(config.allocation_fraction) * 100;
   form.elements.maximum_trade_usd.value = config.maximum_trade_usd ?? "";
@@ -893,27 +875,21 @@ function openEditSessionDialog() {
   form.elements.max_trades.value = config.max_trades ?? "";
   form.elements.target_profit_usd.value = config.target_profit_usd ?? "";
   form.elements.max_loss_usd.value = config.max_loss_usd ?? "";
-  if (session.mode === "real") {
-    const cash = Number(state.account?.balance_usdc);
-    if (Number.isFinite(cash)) {
-      form.elements.maximum_trade_usd.max = String(cash);
-      form.elements.max_loss_usd.max = String(cash);
-    }
-    form.elements.maximum_trade_usd.min = "1";
-  } else {
-    form.elements.maximum_trade_usd.removeAttribute("max");
-    form.elements.max_loss_usd.removeAttribute("max");
-    form.elements.maximum_trade_usd.min = "0.01";
+  const cash = Number(state.account?.balance_usdc);
+  if (Number.isFinite(cash)) {
+    form.elements.maximum_trade_usd.max = String(cash);
+    form.elements.max_loss_usd.max = String(cash);
   }
+  form.elements.maximum_trade_usd.min = "1";
   $("editSessionFormMessage").textContent = "";
   const rule = riskRuleText();
   $("editSessionRiskRuleTitle").textContent = rule.title;
   $("editSessionRiskRuleCopy").textContent = rule.copy;
   updateEditSessionBudgetPreview();
-  $("paperSessionEditDialog").showModal();
+  $("sessionEditDialog").showModal();
 }
 
-async function updatePaperSession(event) {
+async function updateSession(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const submit = form.querySelector("button[type=submit]");
@@ -938,45 +914,47 @@ async function updatePaperSession(event) {
     await request(`/api/v1/trading/sessions/${encodeURIComponent(sessionId)}`, {
       method: "PATCH", body: JSON.stringify(payload),
     });
-    $("paperSessionEditDialog").close();
-    await loadPaperSessions();
+    $("sessionEditDialog").close();
+    await loadSessions();
     toast("Runtime configuration updated");
   } catch (error) {
     $("editSessionFormMessage").textContent = error.message;
   } finally { submit.disabled = false; }
 }
 
-function openPaperSessionDialog() {
+function openSessionDialog() {
   if (activeSession()) {
     toast("Stop the active session before creating another one");
-    renderPaperControl();
+    renderTradingControl();
     return;
   }
-  if (!state.dashboard?.capabilities?.paper_session_runtime) {
+  if (!state.dashboard?.capabilities?.automatic_real_trading) {
     toast("Trading-session runtime is unavailable");
     return;
   }
-  const form = $("paperSessionForm");
+  const cash = Number(state.account?.balance_usdc);
+  if (!state.account?.connected || !Number.isFinite(cash) || cash < 1) {
+    toast(state.account?.error || "Connect a Polymarket account with at least $1 available");
+    return;
+  }
+  const form = $("sessionForm");
   form.reset();
-  form.elements.mode.value = "paper";
   const rule = riskRuleText();
   $("sessionRiskRuleTitle").textContent = rule.title;
   $("sessionRiskRuleCopy").textContent = rule.copy;
   $("sessionFormMessage").textContent = "";
-  syncSessionMode();
+  syncSessionBalance();
   updateSessionBudgetPreview();
-  $("paperSessionDialog").showModal();
+  $("sessionDialog").showModal();
 }
 
-async function startPaperSession(event) {
+async function startSession(event) {
   event.preventDefault();
   const form = event.currentTarget;
   const submit = form.querySelector("button[type=submit]");
   const payload = {
-    mode: form.elements.mode.value,
+    mode: "real",
     name: form.elements.name.value.trim() || null,
-    starting_bankroll: form.elements.mode.value === "paper"
-      ? Number(form.elements.starting_bankroll.value) : null,
     allocation_percent: Number(form.elements.allocation_percent.value),
     maximum_trade_usd: optionalFormNumber(form, "maximum_trade_usd"),
     confidence_percent: Number(form.elements.confidence_percent.value),
@@ -995,28 +973,22 @@ async function startPaperSession(event) {
       method: "POST", body: JSON.stringify(payload),
     });
     state.selectedSessionId = session.session_id;
-    $("paperSessionDialog").close();
-    await loadPaperSessions();
-    toast(`${String(session.mode || "paper").toUpperCase()} session started`);
+    $("sessionDialog").close();
+    await loadSessions();
+    toast("Real-money session started");
   } catch (error) {
     $("sessionFormMessage").textContent = error.message;
-  } finally {
-    submit.disabled = false;
-    if (form.elements.mode.value === "real") syncSessionMode();
-  }
+  } finally { submit.disabled = false; }
 }
 
 async function refresh() {
   try {
     const [dashboard, chart, health, account] = await Promise.all([request("/api/v1/dashboard"), request("/api/v1/live/chart"), request("/health"), request("/api/v1/account")]);
     state.dashboard = dashboard; state.live = dashboard.live; state.chart = chart; state.health = health; state.account = account;
-    const supportsTradeMode = Boolean(dashboard.capabilities?.round_trade_mode_filter);
-    $("tradeModeFilter").classList.toggle("hidden", !supportsTradeMode);
-    if (!supportsTradeMode) $("tradeModeFilter").value = "";
     $("collectorStatus").textContent = health.collector.fresh ? "Live" : health.collector.available ? "Stale" : "Offline";
     $("collectorStatus").className = health.collector.fresh ? "positive" : "negative";
     renderLive(); renderCharts(); renderStatistics(); renderAccount();
-    const followups = [loadPaperSessions()];
+    const followups = [loadSessions()];
     if ($("historyView").classList.contains("active")) followups.push(loadRounds());
     await Promise.all(followups);
   } catch (error) {
@@ -1041,7 +1013,7 @@ function connectSockets() {
     state.live = JSON.parse(event.data);
     renderLive();
     if (previousSlug && state.live?.prediction?.slug !== previousSlug) {
-      Promise.all([loadRounds(), loadPaperSessions(), request("/api/v1/statistics")]).then(([, , statistics]) => {
+      Promise.all([loadRounds(), loadSessions(), request("/api/v1/statistics")]).then(([, , statistics]) => {
         state.dashboard.statistics = statistics;
         renderStatistics();
       }).catch(() => {});
@@ -1076,9 +1048,7 @@ function connectSockets() {
     renderAccount();
     renderSessionList();
     renderSessionDetail();
-    if ($("paperSessionDialog").open && $("paperSessionForm").elements.mode.value === "real") {
-      syncSessionMode();
-    }
+    if ($("sessionDialog").open) syncSessionBalance();
   };
   const reconnect = () => { setConnection("offline", "Reconnecting"); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connectSockets, 2500); };
   liveSocket.onclose = reconnect; liveSocket.onerror = () => liveSocket.close();
@@ -1096,11 +1066,11 @@ function changeView(name) {
   [$("viewEyebrow").textContent, $("viewTitle").textContent] = titles[name];
   history.replaceState(null, "", `#${name}`);
   if (name === "history") loadRounds().catch(error => toast(error.message));
-  if (name === "trades") loadPaperSessions().catch(error => toast(error.message));
+  if (name === "trades") loadSessions().catch(error => toast(error.message));
 }
 
 document.querySelectorAll(".nav-item").forEach(button => button.addEventListener("click", () => changeView(button.dataset.view)));
-[$("resultFilter"), $("predictionFilter"), $("tradedFilter"), $("tradeModeFilter")].forEach(input => input.addEventListener("change", () => {
+[$("resultFilter"), $("predictionFilter"), $("tradedFilter")].forEach(input => input.addEventListener("change", () => {
   state.pages.history.offset = 0;
   loadRounds().catch(e => toast(e.message));
 }));
@@ -1110,24 +1080,22 @@ $("tradeStatusFilter").addEventListener("change", () => {
 });
 $("historyPrevious").addEventListener("click", () => movePage("history", -1, loadRounds));
 $("historyNext").addEventListener("click", () => movePage("history", 1, loadRounds));
-$("sessionsPrevious").addEventListener("click", () => movePage("sessions", -1, loadPaperSessions));
-$("sessionsNext").addEventListener("click", () => movePage("sessions", 1, loadPaperSessions));
+$("sessionsPrevious").addEventListener("click", () => movePage("sessions", -1, loadSessions));
+$("sessionsNext").addEventListener("click", () => movePage("sessions", 1, loadSessions));
 $("tradesPrevious").addEventListener("click", () => movePage("trades", -1, reloadSelectedSession));
 $("tradesNext").addEventListener("click", () => movePage("trades", 1, reloadSelectedSession));
 $("eventsPrevious").addEventListener("click", () => movePage("events", -1, reloadSelectedSession));
 $("eventsNext").addEventListener("click", () => movePage("events", 1, reloadSelectedSession));
 $("autoTradingToggle").addEventListener("change", toggleAutomaticTrading);
-$("newSessionButton").addEventListener("click", openPaperSessionDialog);
-$("paperSessionForm").addEventListener("submit", startPaperSession);
-$("paperSessionForm").addEventListener("input", updateSessionBudgetPreview);
-document.querySelectorAll('#paperSessionForm input[name="mode"]').forEach(
-  input => input.addEventListener("change", syncSessionMode));
-$("sessionDialogClose").addEventListener("click", () => { $("paperSessionDialog").close(); renderPaperControl(); });
-$("paperSessionDialog").addEventListener("close", renderPaperControl);
+$("newSessionButton").addEventListener("click", openSessionDialog);
+$("sessionForm").addEventListener("submit", startSession);
+$("sessionForm").addEventListener("input", updateSessionBudgetPreview);
+$("sessionDialogClose").addEventListener("click", () => { $("sessionDialog").close(); renderTradingControl(); });
+$("sessionDialog").addEventListener("close", renderTradingControl);
 $("editSessionButton").addEventListener("click", openEditSessionDialog);
-$("paperSessionEditForm").addEventListener("submit", updatePaperSession);
-$("paperSessionEditForm").addEventListener("input", updateEditSessionBudgetPreview);
-$("editSessionDialogClose").addEventListener("click", () => $("paperSessionEditDialog").close());
+$("sessionEditForm").addEventListener("submit", updateSession);
+$("sessionEditForm").addEventListener("input", updateEditSessionBudgetPreview);
+$("editSessionDialogClose").addEventListener("click", () => $("sessionEditDialog").close());
 $("refreshButton").addEventListener("click", refresh);
 $("dialogClose").addEventListener("click", () => $("roundDialog").close());
 $("manualBuyButton").addEventListener("click", previewBuy);
@@ -1186,10 +1154,10 @@ setInterval(() => {
 }, 1000);
 
 setInterval(async () => {
-  if (state.dashboard?.capabilities?.paper_session_runtime) {
+  if (state.dashboard?.capabilities?.automatic_real_trading) {
     if (!sessionPollInFlight) {
       sessionPollInFlight = true;
-      try { await loadPaperSessions(); } catch (_) {} finally { sessionPollInFlight = false; }
+      try { await loadSessions(); } catch (_) {} finally { sessionPollInFlight = false; }
     }
   }
 }, 5000);

@@ -5,7 +5,8 @@ from statistics import NormalDist
 
 
 RECOMMENDED_CONFIDENCE = .90
-MAXIMUM_ADVERSE_PRICE_MOVE = .15
+MINIMUM_ENTRY_PRICE = .80
+MAXIMUM_ADVERSE_PRICE_MOVE = .10
 RISK_RULE = "thin_gap_and_movement_or_choppy_up"
 
 

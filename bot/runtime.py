@@ -1,4 +1,4 @@
-"""Application lifecycle for the collector, API, and paper-session runtime."""
+"""Application lifecycle for the collector, API, and real trading runtime."""
 
 import threading
 from pathlib import Path
@@ -8,7 +8,7 @@ import uvicorn
 from .api import create_app
 from .collector import CollectorConfig, run as run_collector
 from .live import LiveStore
-from .paper_sessions import PaperSessionManager
+from .sessions import TradingSessionManager
 from .account import PolymarketAccount
 
 
@@ -17,7 +17,7 @@ def serve(data: Path, host: str, port: int, api_only: bool = False) -> None:
     live_store = LiveStore()
     workers = []
     account = PolymarketAccount(data, live_store)
-    paper_sessions = None if api_only else PaperSessionManager(data, account=account)
+    sessions = None if api_only else TradingSessionManager(data, account=account)
 
     if not api_only:
         collector = threading.Thread(
@@ -27,13 +27,12 @@ def serve(data: Path, host: str, port: int, api_only: bool = False) -> None:
         workers.append(collector)
 
     try:
-        uvicorn.run(create_app(data, live_store,
-                               paper_sessions=paper_sessions, account=account),
+        uvicorn.run(create_app(data, live_store, sessions=sessions, account=account),
                     host=host, port=port, log_level="info")
     finally:
         stop.set()
-        if paper_sessions is not None:
-            paper_sessions.shutdown()
+        if sessions is not None:
+            sessions.shutdown()
         account.close()
         for worker in workers:
             worker.join(timeout=5)

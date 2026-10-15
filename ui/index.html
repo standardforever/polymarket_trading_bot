@@ -151,7 +151,7 @@
 
       <section class="view" id="historyView">
         <article class="card table-card">
-          <div class="table-tools"><div><span class="label">ALL EVALUATED ROUNDS</span><h2>Prediction history</h2></div><div class="filters"><select id="resultFilter"><option value="">All results</option><option>WIN</option><option>LOSS</option><option>SKIP</option><option>PENDING</option></select><select id="predictionFilter"><option value="">All predictions</option><option>Up</option><option>Down</option><option>SKIP</option></select><select id="tradedFilter"><option value="">All rounds</option><option value="true">Traded</option><option value="false">Not traded</option></select><select class="hidden" id="tradeModeFilter"><option value="">All trade modes</option><option value="real">Real-money trades</option><option value="paper">Paper trades</option></select></div></div>
+          <div class="table-tools"><div><span class="label">ALL EVALUATED ROUNDS</span><h2>Prediction history</h2></div><div class="filters"><select id="resultFilter"><option value="">All results</option><option>WIN</option><option>LOSS</option><option>SKIP</option><option>PENDING</option></select><select id="predictionFilter"><option value="">All predictions</option><option>Up</option><option>Down</option><option>SKIP</option></select><select id="tradedFilter"><option value="">All rounds</option><option value="true">Real trade</option><option value="false">Not traded</option></select></div></div>
           <div class="table-scroll"><table><thead><tr><th>Round</th><th>Decision</th><th>Confidence</th><th>Polymarket</th><th>Actual</th><th>Result</th><th>Edge</th><th>Trade</th></tr></thead><tbody id="historyBody"></tbody></table></div>
           <div class="empty-state hidden" id="historyEmpty">No rounds match these filters.</div>
           <div class="pagination" id="historyPagination"><button class="secondary-button" id="historyPrevious">Previous</button><span id="historyPageInfo">Page 1</span><button class="secondary-button" id="historyNext">Next</button></div>
@@ -159,9 +159,9 @@
       </section>
 
       <section class="view" id="tradesView">
-        <div class="paper-history-layout">
+        <div class="trading-history-layout">
           <article class="card session-browser">
-            <div class="card-head"><div><span class="label">TRADING SESSIONS</span><h2>Paper and real sessions</h2><p>Newest first</p></div><button class="secondary-button" id="newSessionButton">＋ New</button></div>
+            <div class="card-head"><div><span class="label">REAL-MONEY SESSIONS</span><h2>Automated trading</h2><p>Newest first</p></div><button class="secondary-button" id="newSessionButton">＋ New</button></div>
             <div class="session-list" id="sessionList"></div>
             <div class="empty-state hidden" id="sessionsEmpty">No trading sessions yet. Create one from the home page.</div>
             <div class="pagination session-pagination" id="sessionsPagination"><button class="secondary-button" id="sessionsPrevious">Previous</button><span id="sessionsPageInfo">Page 1</span><button class="secondary-button" id="sessionsNext">Next</button></div>
@@ -190,15 +190,14 @@
   </div>
 
   <dialog id="roundDialog"><button class="dialog-close" id="dialogClose">×</button><div id="roundDetail"></div></dialog>
-  <dialog id="paperSessionDialog">
+  <dialog id="sessionDialog">
     <button class="dialog-close" id="sessionDialogClose">×</button>
-    <p class="eyebrow">NEW TRADING SESSION</p><h2>Choose the mode and set the rules</h2>
-    <form id="paperSessionForm" class="session-form">
-      <div class="full mode-field"><span>Execution mode</span><div class="mode-choice"><label><input type="radio" name="mode" value="paper" checked><b>Paper</b><small>Simulation</small></label><label><input type="radio" name="mode" value="real"><b>Real money</b><small>Live account</small></label></div><small id="sessionModeCopy">Uses a simulated bankroll and never submits an exchange order.</small></div>
+    <p class="eyebrow">NEW REAL-MONEY SESSION</p><h2>Set the automatic trading rules</h2>
+    <form id="sessionForm" class="session-form">
+      <div class="full mode-field"><span>Account funding</span><small>Uses live available USDC from your connected Polymarket account.</small></div>
       <label class="full"><span>Session name <small>Optional label for this run</small></span><input name="name" maxlength="60" placeholder="Morning BTC session"></label>
-      <label id="startingBankrollField"><span>Starting balance</span><div class="input-unit"><i>$</i><input name="starting_bankroll" type="number" min="0.01" step="0.01" value="50" required></div><small id="startingBankrollCopy">Simulated money for this session.</small></label>
       <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" value="80" required><i>%</i></div></label>
-      <label><span>Maximum per trade <small>Optional dollar cap</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>
+      <label><span>Maximum per trade <small>Optional dollar cap</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="1" step="0.01" placeholder="No cap"></div></label>
       <label><span>Minimum confidence</span><div class="input-unit suffix"><input name="confidence_percent" type="number" min="50" max="98" step="0.1" value="90" required><i>%</i></div></label>
       <label><span>Minimum profit edge</span><div class="input-unit suffix"><input name="minimum_edge_percent" type="number" min="0" max="99" step="0.1" value="3" required><i>%</i></div></label>
       <label><span>Stop new entries at</span><div class="input-unit suffix"><input name="entry_cutoff_seconds" type="number" min="5" max="109" step="1" value="30" required><i>sec</i></div></label>
@@ -210,14 +209,14 @@
       <div class="session-preview full"><span>Planned first-trade budget</span><strong id="sessionBudgetPreview">$40.00</strong><small id="sessionRiskBudgetPreview">Thin gap and movement-warning amounts will appear here.</small></div>
       <div class="risk-rule-note full"><strong id="sessionRiskRuleTitle">Combined-risk protection</strong><span id="sessionRiskRuleCopy">A thin gap together with movement disagreement is always skipped.</span></div>
       <p class="form-message full" id="sessionFormMessage"></p>
-      <button class="primary-button full" id="startSessionButton" type="submit">Start paper session</button>
+      <button class="primary-button full" id="startSessionButton" type="submit">Activate real-money bot</button>
     </form>
   </dialog>
-  <dialog id="paperSessionEditDialog">
+  <dialog id="sessionEditDialog">
     <button class="dialog-close" id="editSessionDialogClose">×</button>
     <p class="eyebrow">ACTIVE TRADING SESSION</p><h2>Edit runtime configuration</h2>
     <p class="dialog-intro">Changes apply to future entries. Edge and cutoff changes also update an unfilled candidate currently being monitored. An open position keeps its original entry.</p>
-    <form id="paperSessionEditForm" class="session-form">
+    <form id="sessionEditForm" class="session-form">
       <label class="full"><span>Session name</span><input name="name" maxlength="60"></label>
       <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" required><i>%</i></div></label>
       <label><span>Maximum per trade <small>Optional dollar cap</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>
@@ -245,6 +244,6 @@
   </dialog>
   <div class="toast" id="toast"></div>
   <script src="config.js"></script>
-  <script type="module" src="app.js?v=20261008-account-sync"></script>
+  <script type="module" src="app.js?v=20261008-real-only"></script>
 </body>
 </html>

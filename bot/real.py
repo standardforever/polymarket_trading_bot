@@ -4,18 +4,16 @@ import time
 from decimal import Decimal, ROUND_FLOOR
 
 from .account import AutomaticOrderSubmissionError
-from .paper import PaperTrader, risk_adjusted_allocation
+from .trader import TradingEngine, risk_adjusted_allocation
 
 
-class RealTrader(PaperTrader):
-    """Use the paper strategy lifecycle while submitting bounded FOK buys."""
+class RealTrader(TradingEngine):
+    """Submit bounded FOK buys through the real Polymarket account."""
 
     def __init__(self, data, account, bankroll, **kwargs):
         self.account = account
         self.pending_orders = {}
-        super().__init__(data, bankroll, execution_mode="real",
-                         folder_name="real-trading/sessions",
-                         file_prefix="real", **kwargs)
+        super().__init__(data, bankroll, **kwargs)
 
     def _available_cash(self, force=True):
         snapshot = self.account.snapshot(force=force)
@@ -90,6 +88,11 @@ class RealTrader(PaperTrader):
         ask = float(quote["ask"])
         candidate["best_ask"] = (ask if candidate["best_ask"] is None
                                   else min(candidate["best_ask"], ask))
+        minimum_entry_price = candidate.get("minimum_entry_price")
+        if (minimum_entry_price is not None
+                and ask <= float(minimum_entry_price) + 1e-12):
+            candidate["rejections"]["price_below_entry_floor"] += 1
+            return
         signal_ask = candidate.get("signal_ask")
         adverse_limit = candidate.get("maximum_adverse_price_move")
         if (adverse_limit is not None and signal_ask is not None
@@ -136,7 +139,9 @@ class RealTrader(PaperTrader):
                 signal_ask=(Decimal(str(signal_ask))
                             if signal_ask is not None else None),
                 maximum_adverse_price_move=(Decimal(str(adverse_limit))
-                                             if adverse_limit is not None else None))
+                                             if adverse_limit is not None else None),
+                minimum_entry_price=(Decimal(str(minimum_entry_price))
+                                     if minimum_entry_price is not None else None))
         except ValueError as error:  # Preflight failed before order submission.
             candidate["rejections"]["exchange_preflight"] += 1
             self.write("order_preflight_rejected", slug=slug, side=candidate["side"],

@@ -444,7 +444,8 @@ class PolymarketAccount:
     def automatic_buy(self, *, run_id: str, slug: str, outcome: str,
                       amount_usd: Decimal, maximum_price: Decimal,
                       signal_ask: Decimal | None = None,
-                      maximum_adverse_price_move: Decimal | None = None):
+                      maximum_adverse_price_move: Decimal | None = None,
+                      minimum_entry_price: Decimal | None = None):
         """Submit one bounded FOK buy for an already-activated real session."""
         with self.lock:
             started = time.monotonic()
@@ -474,6 +475,9 @@ class PolymarketAccount:
             if not fresh_quote.get("ready") or fresh_quote.get("ask") is None:
                 raise ValueError("The latest executable price is unavailable")
             fresh_ask = Decimal(str(fresh_quote["ask"]))
+            if minimum_entry_price is not None and fresh_ask <= minimum_entry_price:
+                raise ValueError(
+                    f"Current executable price must be above the {minimum_entry_price} entry floor")
             if (signal_ask is not None and maximum_adverse_price_move is not None
                     and signal_ask - fresh_ask > maximum_adverse_price_move):
                 limit_cents = (maximum_adverse_price_move * 100).normalize()
@@ -491,6 +495,42 @@ class PolymarketAccount:
             price_bound = min(Decimal(1) - tick, max(tick, price_bound))
             order_id = uuid.uuid4().hex
             pre_submit_latency_ms = round((time.monotonic() - started) * 1000, 3)
+            order = {"token_id": token_id, "side": "BUY", "amount": str(amount),
+                     "max_price": str(price_bound), "order_type": "FOK"}
+            # At the $1 venue minimum, max_spend=$1 would cause the SDK to
+            # reserve fees inside the cap and submit less than $1.
+            if amount > Decimal("1.10"):
+                order["max_spend"] = str(amount)
+
+            signed_order = None
+            signed_price = None
+            build_latency_ms = None
+            if (minimum_entry_price is not None or
+                    (signal_ask is not None and maximum_adverse_price_move is not None)):
+                # Building the market order asks the SDK for its authoritative
+                # executable book and can take seconds. Check the price encoded
+                # in that signed order before posting it; the shared stream may
+                # still show the older quote during a fast collapse.
+                build_started = time.monotonic()
+                signed_order = client.create_market_order(**order)
+                build_latency_ms = round((time.monotonic() - build_started) * 1000, 3)
+                maker_amount = Decimal(str(signed_order.maker_amount))
+                taker_amount = Decimal(str(signed_order.taker_amount))
+                if taker_amount <= 0:
+                    raise ValueError("The signed order has no executable shares")
+                signed_price = maker_amount / taker_amount
+                if minimum_entry_price is not None and signed_price <= minimum_entry_price:
+                    raise ValueError(
+                        f"Signed executable price must be above the {minimum_entry_price} entry floor")
+                if (signal_ask is not None and maximum_adverse_price_move is not None
+                        and signal_ask - signed_price > maximum_adverse_price_move):
+                    limit_cents = (maximum_adverse_price_move * 100).normalize()
+                    raise ValueError(
+                        "Signed executable price is more than "
+                        f"{limit_cents} cents below the signal price")
+                if signed_price > maximum_price:
+                    raise ValueError("Signed executable price exceeds the strategy price limit")
+
             self._audit("automatic_order_submitted", order_id=order_id,
                         run_id=run_id, slug=slug, outcome=outcome,
                         amount_usd=str(amount), maximum_price=str(price_bound),
@@ -499,17 +539,17 @@ class PolymarketAccount:
                         maximum_adverse_price_move=(
                             str(maximum_adverse_price_move)
                             if maximum_adverse_price_move is not None else None),
+                        minimum_entry_price=(str(minimum_entry_price)
+                                             if minimum_entry_price is not None else None),
+                        signed_price=(str(signed_price)
+                                      if signed_price is not None else None),
                         balance_latency_ms=balance_latency_ms,
+                        order_build_latency_ms=build_latency_ms,
                         pre_submit_latency_ms=pre_submit_latency_ms)
             try:
-                order = {"token_id": token_id, "side": "BUY", "amount": str(amount),
-                         "max_price": str(price_bound), "order_type": "FOK"}
-                # At the $1 venue minimum, max_spend=$1 would cause the SDK to
-                # reserve fees inside the cap and submit less than $1.
-                if amount > Decimal("1.10"):
-                    order["max_spend"] = str(amount)
                 submission_started = time.monotonic()
-                response = client.place_market_order(**order)
+                response = (client.post_order(signed_order) if signed_order is not None
+                            else client.place_market_order(**order))
                 result = _plain(response)
                 result["submission_latency_ms"] = round(
                     (time.monotonic() - submission_started) * 1000, 3)

@@ -279,7 +279,7 @@ def watch_references(state, recorder, stop):
                         alignment = state.alignment(start, reference)
                         recorder.write("settlement_alignment", start=start, **alignment)
                         # Polymarket publishes the official winner before Gamma
-                        # always exposes finalPrice. Do not keep paper capital
+                        # always exposes finalPrice. Do not keep trading capital
                         # locked while waiting for that later audit field.
                         if reference["price_to_beat"]:
                             closing_point = alignment.get("closing", {}).get("point") or {}

@@ -66,11 +66,11 @@ warning; setting a percentage to zero skips that warning type.
 
 After a qualified signal, the trader watches for an executable ask below the
 maximum price allowed by the configured edge. It stops opening new entries at
-the session cutoff. It pauses entry whenever the selected contract is more than
-15 cents below its signal-time ask and may continue if the price recovers before
-the cutoff.
+the session cutoff. It pauses entry while the selected contract is at or below 80
+cents or more than 10 cents below its signal-time ask. The candidate remains
+active and may trade if the price recovers to both limits before the cutoff.
 
-Real orders use bounded fill-or-kill execution. The exchange may fill a BUY at
-a lower price than the checked ask because the bound limits the maximum buying
-price. Fees, visible liquidity, account cash and the session allocation cap are
-checked before submission.
+Real orders use bounded fill-or-kill execution. The bot checks the live ask and
+the executable price encoded in the signed order before posting it. Fees,
+visible liquidity, account cash and the session allocation cap are also checked
+before submission.
