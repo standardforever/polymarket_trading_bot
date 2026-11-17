@@ -1,1 +1,5 @@
 {"kind":"price_connected","received_ms":1794930186105,"source":"polybolt"}
+{"kind":"error","received_ms":1794931358876,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"price_error","received_ms":1794931550194,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1794931550433,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1794931552383,"source":"polybolt"}

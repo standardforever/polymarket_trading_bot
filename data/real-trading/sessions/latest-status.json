@@ -1,5 +1,5 @@
 {
-  "updated_ms": 1794930572739,
+  "updated_ms": 1794932070566,
   "run_id": "20261018T224141.659360Z",
   "status": "WAITING_FOR_SIGNAL",
   "starting_bankroll": 101.72599,
@@ -24,6 +24,6 @@
   "candidates": 0,
   "accepting_entries": true,
   "stop_reason": null,
-  "last_slug": "btc-updown-5m-1794930300",
+  "last_slug": "btc-updown-5m-1794931800",
   "last_result": "NO_FILL"
 }
