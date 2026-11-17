@@ -1,0 +1,33 @@
+{
+  "session_id": "20261016T014036.215115Z",
+  "created_ms": 1792114836215,
+  "name": "Real session 20261016T014036",
+  "configuration": {
+    "allocation_fraction": 0.8,
+    "maximum_trade_usd": null,
+    "model_threshold": 0.98,
+    "minimum_edge": 0.0,
+    "entry_cutoff_seconds": 30.0,
+    "max_trades": null,
+    "target_profit_usd": null,
+    "max_loss_usd": null,
+    "thin_gap_allocation_fraction": 0.0,
+    "movement_disagreement_allocation_fraction": 0.0,
+    "minimum_strength": 2.5,
+    "maximum_entry_price": 0.97,
+    "protect_profits": true,
+    "fresh_revalidation": true,
+    "strict_risk_rules": true,
+    "starting_bankroll": 101.72599,
+    "planned_first_trade_budget": 81.380792,
+    "shadow_rejected_signals": true,
+    "recovered_signals_enabled": true,
+    "recovered_allocation_fraction": 0.5,
+    "recovery_confirmation_snapshots": 3,
+    "recovery_confirmation_seconds": 2.0,
+    "recovered_model_threshold": 0.9,
+    "recovered_minimum_strength": 2.5,
+    "recovered_minimum_gap_bps": 5.0
+  },
+  "updated_ms": 1792210199020
+}

@@ -174,19 +174,19 @@ class ApiTests(unittest.TestCase):
         manager = TradingSessionManager(self.data, account=account)
         client = TestClient(create_app(self.data, sessions=manager,
                                        account=account))
-        response = client.post("/api/v1/trading/sessions", json={
-            "allocation_percent": 20, "maximum_trade_usd": 5,
-            "max_loss_usd": 10,
-        })
+        response = client.post("/api/v1/trading/sessions", json={})
         self.assertEqual(response.status_code, 201)
         session = response.json()
         self.assertNotIn("mode", session)
         self.assertEqual(session["configuration"]["starting_bankroll"], 37.5)
-        self.assertEqual(session["configuration"]["planned_first_trade_budget"], 5)
+        self.assertEqual(session["configuration"]["planned_first_trade_budget"], 30)
+        self.assertEqual(session["configuration"]["model_threshold"], .98)
+        self.assertEqual(session["configuration"]["minimum_strength"], 2.5)
+        self.assertTrue(session["configuration"]["protect_profits"])
         detail = client.get(
             f"/api/v1/trading/sessions/{session['session_id']}").json()
         self.assertEqual(detail["status_detail"]["available_bankroll"], 37.5)
-        self.assertEqual(detail["status_detail"]["balance_source"], "account_api")
+        self.assertEqual(detail["status_detail"]["balance_source"], "protected_session_ledger")
         client.post(f"/api/v1/trading/sessions/{session['session_id']}/stop")
         manager.shutdown()
 
@@ -203,14 +203,12 @@ class ApiTests(unittest.TestCase):
         manager = TradingSessionManager(self.data, account=account)
         client = TestClient(create_app(self.data, sessions=manager,
                                        account=account))
-        response = client.post("/api/v1/trading/sessions", json={
-            "allocation_percent": 20, "maximum_trade_usd": 4,
-        })
+        response = client.post("/api/v1/trading/sessions", json={})
         self.assertEqual(response.status_code, 201)
         client.post(f"/api/v1/trading/sessions/{response.json()['session_id']}/stop")
         manager.shutdown()
 
-    def test_real_session_allows_dynamic_one_dollar_floor(self):
+    def test_real_session_uses_fixed_eighty_percent_budget(self):
         class Account:
             configuration = SimpleNamespace(complete=True)
 
@@ -223,11 +221,29 @@ class ApiTests(unittest.TestCase):
         manager = TradingSessionManager(self.data, account=account)
         client = TestClient(create_app(self.data, sessions=manager,
                                        account=account))
-        response = client.post("/api/v1/trading/sessions", json={
-            "allocation_percent": 20,
-        })
+        response = client.post("/api/v1/trading/sessions", json={})
         self.assertEqual(response.status_code, 201)
+        self.assertEqual(response.json()["configuration"]["planned_first_trade_budget"], 1.6)
         client.post(f"/api/v1/trading/sessions/{response.json()['session_id']}/stop")
+        manager.shutdown()
+
+    def test_real_session_rejects_strategy_overrides(self):
+        class Account:
+            configuration = SimpleNamespace(complete=True)
+
+            @staticmethod
+            def snapshot(force=False):
+                return {"connected": True, "allowance_ready": True,
+                        "balance_usdc": "20", "positions": [], "open_orders": []}
+
+        account = Account()
+        manager = TradingSessionManager(self.data, account=account)
+        client = TestClient(create_app(self.data, sessions=manager,
+                                       account=account))
+        response = client.post("/api/v1/trading/sessions", json={
+            "allocation_percent": 50,
+        })
+        self.assertEqual(response.status_code, 422)
         manager.shutdown()
 
     def test_active_real_session_resumes_after_runtime_restart(self):
@@ -400,6 +416,88 @@ class ApiTests(unittest.TestCase):
         })
         self.assertEqual(placed.status_code, 200)
         self.assertEqual(placed.json()["status"], "MATCHED")
+
+    def test_recovered_signal_toggle_and_internal_fund_transfer_api(self):
+        class Account:
+            configuration = SimpleNamespace(complete=True)
+
+            @staticmethod
+            def snapshot(force=False):
+                return {"configured": True, "connected": True,
+                        "balance_usdc": "20", "positions": [],
+                        "open_orders": []}
+
+        account = Account()
+        manager = TradingSessionManager(self.data, account)
+        client = TestClient(create_app(self.data, sessions=manager, account=account))
+        started = client.post("/api/v1/trading/sessions", json={})
+        self.assertEqual(started.status_code, 201)
+        session_id = started.json()["session_id"]
+
+        funds = client.get("/api/v1/trading/funds").json()
+        self.assertTrue(funds["recovered_signals_enabled"])
+        self.assertEqual(funds["core_trading"], 20)
+
+        moved = client.post(
+            f"/api/v1/trading/sessions/{session_id}/fund-transfers",
+            json={"source": "core_trading", "destination": "safe_reserve",
+                  "amount": 2})
+        self.assertEqual(moved.status_code, 200)
+        self.assertEqual(moved.json()["core_trading"], 18)
+        self.assertEqual(moved.json()["safe_reserve"], 2)
+
+        disabled = client.patch(
+            f"/api/v1/trading/sessions/{session_id}/recovered-signals",
+            json={"enabled": False})
+        self.assertEqual(disabled.status_code, 200)
+        self.assertFalse(disabled.json()["recovered_signals_enabled"])
+
+        manager.trader.write(
+            "recovered_signal_watching", slug="btc-updown-5m-400",
+            side="Up", entry_mode="recovered",
+            capital_pool="profit_trading")
+        manager.trader.write(
+            "signal_seen", slug="btc-updown-5m-700", side="Down",
+            entry_mode="core", capital_pool="core_trading")
+        detail = client.get(
+            f"/api/v1/trading/sessions/{session_id}").json()
+        self.assertIn("signal_seen", {row["event"] for row in detail["events"]})
+        self.assertNotIn("recovered_signal_watching",
+                         {row["event"] for row in detail["events"]})
+        profit_events = client.get("/api/v1/trading/funds").json()["activity"]
+        self.assertIn("recovered_signal_watching",
+                      {row["event"] for row in profit_events})
+
+        manager.trader.write(
+            "entry_validation_changed", slug="btc-updown-5m-400",
+            side="Up", valid=False, reason="first", entry_mode="recovered")
+        manager.trader.write(
+            "entry_validation_changed", slug="btc-updown-5m-400",
+            side="Up", valid=False, reason="second", entry_mode="recovered")
+        manager.trader.write(
+            "entry_validation_changed", slug="btc-updown-5m-400",
+            side="Up", valid=False, reason="third", entry_mode="recovered")
+        first_page = client.get(
+            "/api/v1/trading/funds?activity_limit=2&activity_offset=0").json()
+        second_page = client.get(
+            "/api/v1/trading/funds?activity_limit=2&activity_offset=2").json()
+        self.assertEqual(first_page["activity_page"]["limit"], 2)
+        self.assertEqual(first_page["activity_page"]["offset"], 0)
+        self.assertGreaterEqual(first_page["activity_page"]["total"], 4)
+        self.assertEqual(len(first_page["activity"]), 2)
+        self.assertEqual(len(second_page["activity"]), 2)
+        first_reasons = {row.get("reason") for row in first_page["activity"]
+                         if row.get("reason")}
+        second_reasons = {row.get("reason") for row in second_page["activity"]
+                          if row.get("reason")}
+        self.assertFalse(first_reasons & second_reasons)
+        manager.shutdown()
+
+        resumed_manager = TradingSessionManager(self.data, account)
+        resumed = resumed_manager.funds()
+        self.assertTrue(resumed["active"])
+        self.assertFalse(resumed["recovered_signals_enabled"])
+        resumed_manager.shutdown()
 
 
 if __name__ == "__main__":

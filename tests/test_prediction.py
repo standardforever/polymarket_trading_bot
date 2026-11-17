@@ -129,8 +129,8 @@ class PredictionTests(unittest.TestCase):
         engine.observe(market, context, history, quotes, NOW)
         decision = next(row for row in recorder.records if row["kind"] == "strategy_decision")
         self.assertEqual(set(decision["components"]), set(ALL_COMPONENTS))
-        self.assertEqual(decision["direction"], "Up")
-        self.assertEqual(decision["reason"], "analytic_unvalidated_signal")
+        self.assertEqual(decision["direction"], "SKIP")
+        self.assertEqual(decision["reason"], "analytic_probability_below_98pct")
         self.assertFalse(decision["probability_calibrated"])
         self.assertNotIn("model_outputs", decision)
 
@@ -190,7 +190,7 @@ class PredictionTests(unittest.TestCase):
             "analytic_missing_components:settlement"))
         self.assertNotIn("model_outputs", decision)
 
-    def test_analytic_signal_treats_movement_disagreement_as_warning(self):
+    def test_analytic_signal_blocks_movement_disagreement(self):
         _, _, _, quotes = fixture()
         missing = analytic_signal({}, quotes, .07)
         self.assertEqual(missing["direction"], "SKIP")
@@ -206,14 +206,14 @@ class PredictionTests(unittest.TestCase):
                                          trade_imbalance_10=1, trade_imbalance_30=1,
                                          market_momentum_10=1)
         disagrees = analytic_signal(components, quotes, .07)
-        self.assertEqual(disagrees["direction"], "Up")
-        self.assertEqual(disagrees["reason"], "analytic_unvalidated_signal")
+        self.assertEqual(disagrees["direction"], "SKIP")
+        self.assertEqual(disagrees["reason"], "analytic_movement_disagreement")
         self.assertEqual(disagrees["warnings"], ["movement_disagreement"])
 
         components["market"]["p_up"] = .1
         market_disagrees = analytic_signal(components, quotes, .07)
         self.assertEqual(market_disagrees["direction"], "SKIP")
-        self.assertEqual(market_disagrees["reason"], "analytic_disagreement:market")
+        self.assertEqual(market_disagrees["reason"], "analytic_movement_disagreement")
         self.assertEqual(market_disagrees["warnings"], ["movement_disagreement"])
         self.assertIsNotNone(market_disagrees["estimated_edge"])
 
@@ -227,7 +227,7 @@ class PredictionTests(unittest.TestCase):
         components["market"]["p_up"] = .9
         result = analytic_signal(components, quotes, .07)
         self.assertEqual(result["direction"], "SKIP")
-        self.assertEqual(result["reason"], "analytic_combined_risk")
+        self.assertEqual(result["reason"], "analytic_thin_gap")
         self.assertTrue(result["combined_risk"])
         self.assertEqual(set(result["warnings"]),
                          {"thin_gap", "movement_disagreement"})
@@ -243,7 +243,7 @@ class PredictionTests(unittest.TestCase):
         components["market"]["p_up"] = .9
         result = analytic_signal(components, quotes, .07)
         self.assertEqual(result["direction"], "SKIP")
-        self.assertEqual(result["reason"], "analytic_combined_risk")
+        self.assertEqual(result["reason"], "analytic_thin_gap")
         self.assertTrue(result["thin_gap"])
         self.assertEqual(result["thin_gap_source"], "spot_or_twap")
         self.assertAlmostEqual(result["thin_gap_distance_bps"], 4.6)
@@ -264,7 +264,7 @@ class PredictionTests(unittest.TestCase):
         _, _, _, quotes = fixture()
         result = analytic_signal(component_row(), quotes, .07)
         self.assertEqual(result["direction"], "SKIP")
-        self.assertEqual(result["reason"], "analytic_probability_below_90pct")
+        self.assertEqual(result["reason"], "analytic_probability_below_98pct")
         self.assertAlmostEqual(result["estimated_edge"], .5 - .8 - .07 * .8 * .2)
 
     def test_displayed_decision_gap_uses_twap_not_spot(self):
@@ -279,6 +279,7 @@ class PredictionTests(unittest.TestCase):
         components = component_row()
         components.pop("order_flow")
         components["settlement"]["gap_over_expected_move"] = 4
+        components["settlement"].update(spot_gap_bps=8, twap_gap_bps=8)
         components["movement"].update(momentum_10=1, momentum_30=1,
                                        momentum_60=1, twap_slope_30=1)
         components["market"]["p_up"] = .7

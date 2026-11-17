@@ -1,0 +1,23 @@
+[24518748ms] [ERROR] Failed to load resource: net::ERR_NETWORK_IO_SUSPENDED @ http://127.0.0.1:8000/api/v1/trading/funds?activity_limit=20&activity_offset=0:0
+[24579798ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/account' failed: Error during WebSocket handshake: net::ERR_NETWORK_IO_SUSPENDED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:900
+[24579811ms] [ERROR] Failed to load resource: net::ERR_NETWORK_IO_SUSPENDED @ http://127.0.0.1:8000/api/v1/trading/sessions?limit=8&offset=0:0
+[51093415ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:8000/api/v1/trading/sessions?limit=8&offset=0:0
+[51094652ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/live' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:896
+[51094663ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/chart' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:897
+[51094675ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/quotes' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:898
+[51094687ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/reference' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:899
+[51094699ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/account' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:900
+[51097206ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/live' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:896
+[51097217ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/chart' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:897
+[51097228ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/quotes' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:898
+[51097239ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/account' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:900
+[51097251ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/reference' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:899
+[51098411ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:8000/api/v1/trading/sessions?limit=8&offset=0:0
+[51099824ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/chart' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:897
+[51099835ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/live' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:896
+[51100002ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/quotes' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:898
+[51100885ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/reference' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:899
+[51101562ms] [ERROR] WebSocket connection to 'ws://127.0.0.1:8000/api/v1/ws/account' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:5173/app.js?v=20261016-recovered-pagination:900
+[51103414ms] [ERROR] Failed to load resource: net::ERR_CONNECTION_REFUSED @ http://127.0.0.1:8000/api/v1/trading/sessions?limit=8&offset=0:0
+[129388798ms] [ERROR] Failed to load resource: net::ERR_NETWORK_IO_SUSPENDED @ http://127.0.0.1:8000/api/v1/trading/funds?activity_limit=20&activity_offset=0:0
+[163778936ms] [ERROR] Failed to load resource: net::ERR_NETWORK_IO_SUSPENDED @ http://127.0.0.1:8000/api/v1/trading/sessions?limit=8&offset=0:0

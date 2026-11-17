@@ -1,0 +1,89 @@
+{"kind":"price_connected","received_ms":1790264720676,"source":"polybolt"}
+{"kind":"error","received_ms":1790265124183,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790265163642,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790265356222,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790265440637,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790265449365,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790265508217,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790266666334,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790266669342,"source":"polybolt"}
+{"kind":"error","received_ms":1790266674461,"message":"No messages or PONG for 25 seconds"}
+{"kind":"price_error","received_ms":1790266686973,"source":"polybolt","error":"OSError"}
+{"kind":"price_disconnected","received_ms":1790266686974,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790266696457,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790266718350,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790266721355,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790266726451,"source":"polybolt"}
+{"kind":"error","received_ms":1790266726626,"message":"No messages or PONG for 25 seconds"}
+{"kind":"error","received_ms":1790266728784,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"error","received_ms":1790267003762,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"price_error","received_ms":1790267008479,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267008652,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790267010677,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790267033946,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267036954,"source":"polybolt"}
+{"kind":"error","received_ms":1790267039262,"message":"No messages or PONG for 25 seconds"}
+{"kind":"error","received_ms":1790267041639,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"price_connected","received_ms":1790267042296,"source":"polybolt"}
+{"kind":"error","received_ms":1790267343780,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"price_error","received_ms":1790267357246,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267357377,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790267359185,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790267407792,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267409685,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790267412583,"source":"polybolt"}
+{"kind":"error","received_ms":1790267413880,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}
+{"kind":"error","received_ms":1790267424445,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790267474161,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267475620,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790267478126,"source":"polybolt"}
+{"kind":"error","received_ms":1790267478136,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"error","received_ms":1790267482151,"message":"('Connection aborted.', BrokenPipeError(32, 'Broken pipe'))"}
+{"kind":"price_error","received_ms":1790267650326,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267650486,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790267652918,"source":"polybolt"}
+{"kind":"error","received_ms":1790267658045,"message":"No messages or PONG for 25 seconds"}
+{"kind":"error","received_ms":1790267734484,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790267756224,"message":"Connection to remote host was lost."}
+{"kind":"price_error","received_ms":1790267841164,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267844171,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790267845871,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790267909353,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267912360,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790267913858,"source":"polybolt","error":"OSError"}
+{"kind":"price_disconnected","received_ms":1790267913858,"source":"polybolt"}
+{"kind":"error","received_ms":1790267916488,"message":"No messages or PONG for 25 seconds"}
+{"kind":"price_connected","received_ms":1790267916794,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790267944905,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790267947915,"source":"polybolt"}
+{"kind":"error","received_ms":1790267950142,"message":"No messages or PONG for 25 seconds"}
+{"kind":"price_connected","received_ms":1790267952807,"source":"polybolt"}
+{"kind":"error","received_ms":1790267958307,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"error","received_ms":1790268254376,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"price_error","received_ms":1790268266181,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790268266328,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790268268193,"source":"polybolt"}
+{"kind":"error","received_ms":1790268462469,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790268734710,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"price_error","received_ms":1790268746182,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790268746436,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790268751750,"source":"polybolt"}
+{"kind":"error","received_ms":1790269263300,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790269351978,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790269361903,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790269429406,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790271942922,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790272252059,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790272444271,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"price_error","received_ms":1790272454936,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790272455081,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790272456943,"source":"polybolt"}
+{"kind":"error","received_ms":1790274319212,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790282206519,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790282897550,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790282898713,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790282900658,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790284769433,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790284769569,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790284771376,"source":"polybolt"}
+{"kind":"price_disconnected","received_ms":1790286074286,"source":"polybolt"}

@@ -1,0 +1,18 @@
+{
+  "updated_ms": 1790599744320,
+  "run_id": "20260928T092442.863293Z",
+  "execution_mode": "real",
+  "model_version": "btc_guard_v4",
+  "status": "COMPLETED",
+  "starting_bankroll": 3.492026,
+  "available_bankroll": 2.643637,
+  "realized_profit": 0.877544,
+  "trades": 5,
+  "wins": 5,
+  "losses": 0,
+  "open_positions": 0,
+  "candidates": 0,
+  "accepting_entries": false,
+  "stop_reason": "maximum_trades_reached",
+  "reason": "maximum_trades_reached"
+}

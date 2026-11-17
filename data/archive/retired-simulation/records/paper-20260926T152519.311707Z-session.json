@@ -1,0 +1,22 @@
+{
+  "session_id": "20260926T152519.311707Z",
+  "created_ms": 1790436319311,
+  "name": "Paper session 20260926T152519",
+  "configuration": {
+    "starting_bankroll": 50.0,
+    "allocation_fraction": 0.8,
+    "maximum_trade_usd": null,
+    "model_threshold": 0.9,
+    "minimum_edge": 0.03,
+    "entry_cutoff_seconds": 40.0,
+    "max_trades": null,
+    "target_profit_usd": null,
+    "max_loss_usd": null,
+    "thin_gap_allocation_fraction": 0.25,
+    "movement_disagreement_allocation_fraction": 0.5,
+    "planned_first_trade_budget": 25.182406519650314
+  },
+  "mode": "paper",
+  "paper_only": true,
+  "updated_ms": 1790460270377
+}

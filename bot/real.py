@@ -4,7 +4,10 @@ import time
 from decimal import Decimal, ROUND_FLOOR
 
 from .account import AutomaticOrderSubmissionError
-from .trader import TradingEngine, risk_adjusted_allocation
+from .prediction import CORE_COMPONENTS, analytic_signal, build_components
+from .strategy import probability_snapshot
+from .trader import (TradingEngine, maximum_value_price,
+                     risk_adjusted_allocation)
 
 
 class RealTrader(TradingEngine):
@@ -23,11 +26,14 @@ class RealTrader(TradingEngine):
         return float(snapshot.get("balance_usdc") or 0)
 
     def settlement_available_bankroll(self, calculated_bankroll):
-        """Use actual USDC cash; resolved winnings remain unavailable until redeemed."""
+        """Refresh the account display without adding protected profit to capital."""
         try:
-            return self._available_cash(force=True)
+            self.account_balance = self._available_cash(force=True)
+            if not self.protect_profits:
+                return self.account_balance
         except (TypeError, ValueError):
-            return calculated_bankroll
+            pass
+        return calculated_bankroll
 
     @staticmethod
     def _position_outcome(slug, position, now_seconds):
@@ -53,7 +59,9 @@ class RealTrader(TradingEngine):
         if not snapshot.get("connected"):
             return
         if snapshot.get("balance_usdc") is not None:
-            self.bankroll = float(snapshot["balance_usdc"])
+            self.account_balance = float(snapshot["balance_usdc"])
+            if not self.protect_profits:
+                self.bankroll = self.account_balance
         if not self.positions:
             return
         account_positions = snapshot.get("positions") or []
@@ -73,10 +81,176 @@ class RealTrader(TradingEngine):
         super().process_history(accept_signals=accept_signals)
         self._resolve_from_account()
 
+    def observe_round_record(self, candidate, record):
+        history = candidate.setdefault("_fresh_history", [])
+        kind = record.get("kind")
+        if kind == "btc_price":
+            history.append(record)
+            if len(history) > 400:
+                del history[:-400]
+        elif kind == "btc_context" and record.get("slug") == candidate["slug"]:
+            candidate["_fresh_context"] = record
+
+    def _fresh_validation(self, candidate, quote_record):
+        """Rebuild the forecast from the latest BTC and market snapshot."""
+        context = candidate.get("_fresh_context")
+        history = candidate.get("_fresh_history") or []
+        observed_ms = int(quote_record.get("received_ms") or 0)
+        remaining = (candidate["market_end_ms"] - observed_ms) / 1000
+        try:
+            components = build_components(
+                context, history, quote_record.get("quotes") or {}, None,
+                observed_ms, remaining, CORE_COMPONENTS)
+            signal = analytic_signal(
+                components, quote_record.get("quotes") or {}, candidate["fee_rate"])
+            probability = probability_snapshot(components)
+        except (ArithmeticError, KeyError, TypeError, ValueError) as error:
+            return False, f"fresh_inputs_unavailable:{error}", None
+        strength = abs(float(probability["z_score"]))
+        side = probability["side"]
+        chance = float(probability["chance"])
+        settlement = components["settlement"]
+        spot_gap = settlement.get("spot_gap_bps")
+        twap_gap = settlement.get("twap_gap_bps")
+        try:
+            gap_values = [abs(float(value)) for value in (spot_gap, twap_gap)
+                          if value is not None]
+        except (TypeError, ValueError):
+            gap_values = []
+        if not gap_values:
+            return False, "fresh_inputs_unavailable:gap_unavailable", None
+        thin_gap_distance = min(gap_values)
+        recovered = candidate.get("entry_mode") == "recovered"
+        thin_gap = (thin_gap_distance + 1e-12
+                    < self.recovered_minimum_gap_bps)
+        warnings = list(signal.get("warnings") or [])
+        if thin_gap and "thin_gap" not in warnings:
+            warnings.append("thin_gap")
+        reason = None
+        if recovered:
+            if chance + 1e-12 < self.recovered_model_threshold:
+                reason = "fresh_confidence_below_threshold"
+            elif strength <= self.recovered_minimum_strength:
+                reason = "fresh_strength_below_threshold"
+            elif thin_gap:
+                reason = "fresh_thin_gap"
+        else:
+            if side != candidate["side"]:
+                reason = "fresh_direction_changed"
+            elif chance + 1e-12 < self.model_threshold:
+                reason = "fresh_confidence_below_threshold"
+            elif strength <= self.minimum_strength:
+                reason = "fresh_strength_below_threshold"
+            elif signal.get("thin_gap"):
+                reason = "fresh_thin_gap"
+            elif signal.get("movement_disagreement"):
+                reason = "fresh_movement_disagreement"
+            elif (signal.get("agreement") or {}).get("market") != side:
+                reason = "fresh_market_disagreement"
+            elif signal.get("direction") != side:
+                reason = signal.get("reason") or "fresh_signal_rejected"
+        snapshot = {
+            "probability": chance, "strength": strength, "side": side,
+            "spot_gap_bps": spot_gap, "twap_gap_bps": twap_gap,
+            "thin_gap": thin_gap,
+            "thin_gap_distance_bps": thin_gap_distance,
+            "warnings": warnings,
+        }
+        if reason is not None:
+            candidate["recovery_pass_count"] = 0
+            candidate["recovery_pass_started_ms"] = None
+            candidate["recovery_confirmation_side"] = None
+            return False, reason, snapshot
+        candidate.update(
+            side=side, chance=chance, strength=strength,
+            thin_gap=False,
+            movement_disagreement=bool(signal.get("movement_disagreement")),
+            warnings=warnings,
+            maximum_value_price=min(
+                float(self.maximum_entry_price or 1),
+                maximum_value_price(
+                    chance, candidate["fee_rate"], self.minimum_edge)))
+        candidate["fresh_snapshot"] = snapshot
+        if recovered:
+            if candidate.get("recovery_confirmation_side") != side:
+                candidate["recovery_confirmation_side"] = side
+                candidate["recovery_pass_started_ms"] = observed_ms
+                candidate["recovery_pass_count"] = 0
+            candidate["recovery_pass_count"] += 1
+            elapsed = observed_ms - candidate["recovery_pass_started_ms"]
+            if (candidate["recovery_pass_count"]
+                    < self.recovery_confirmation_snapshots
+                    or elapsed < self.recovery_confirmation_ms):
+                return False, "recovery_confirmation_pending", snapshot
+        return True, "fresh_validation_passed", snapshot
+
+    def _record_recovered_opportunity(self, candidate, observed_ms, ask,
+                                      total_budget, execution_reason):
+        """Persist the earliest fully fillable recovery for later evaluation."""
+        fee_multiplier = 1 + candidate["fee_rate"] * (1 - ask)
+        principal = max(1.0, float(total_budget) / fee_multiplier)
+        shares = principal / ask
+        fee = shares * candidate["fee_rate"] * ask * (1 - ask)
+        cost = principal + fee
+        fill = {"price": ask, "shares": shares, "fee": fee, "cost": cost}
+        slug = candidate["slug"]
+        shadow = {key: value for key, value in candidate.items()
+                  if key != "rejections"}
+        shadow["fill"] = fill
+        self.shadow_positions[slug] = shadow
+        self.candidates.pop(slug, None)
+        self._close_round_tail(candidate["start"])
+        self.handled.add(slug)
+        self.write(
+            "recovered_opportunity", slug=slug, side=candidate["side"],
+            initial_rejection_reason=candidate.get("initial_rejection_reason"),
+            recovery_probability=candidate.get("chance"),
+            recovery_strength=candidate.get("strength"),
+            fresh_snapshot=candidate.get("fresh_snapshot"),
+            price=ask, shares=shares, fee=fee, trade_cost=cost,
+            hypothetical_principal=principal,
+            entry_ms=observed_ms,
+            entry_remaining_seconds=(candidate["market_end_ms"] - observed_ms) / 1000,
+            execution_enabled=self.recovered_signals_enabled,
+            execution_reason=execution_reason,
+            profit_trading_balance=self.protected_profit)
+        self.write_status("WAITING_FOR_SIGNAL", last_slug=slug,
+                          last_result="RECOVERED_OPPORTUNITY_LOGGED")
+
     def consider_quotes(self, candidate, record):
         observed_ms = int(record.get("received_ms", 0))
         if observed_ms < candidate["entry_start_ms"] or observed_ms >= candidate["deadline_ms"]:
             return
+        if self.fresh_revalidation:
+            wall_ms = time.time_ns() // 1_000_000
+            if wall_ms >= candidate["deadline_ms"]:
+                candidate["rejections"]["entry_cutoff_reached"] += 1
+                return
+            if abs(wall_ms - observed_ms) > 5_000:
+                candidate["rejections"]["quote_record_stale"] += 1
+                return
+        if self.fresh_revalidation:
+            valid, validation_reason, snapshot = self._fresh_validation(candidate, record)
+            if not valid:
+                candidate["rejections"][validation_reason] += 1
+                if candidate.get("last_validation_reason") != validation_reason:
+                    self.write("entry_validation_changed", slug=candidate["slug"],
+                               side=candidate["side"], valid=False,
+                               reason=validation_reason, snapshot=snapshot)
+                    candidate["last_validation_reason"] = validation_reason
+                return
+            candidate["last_validation_reason"] = validation_reason
+            if (candidate.get("entry_mode") == "recovered"
+                    and not candidate.get("recovery_logged")):
+                candidate["recovery_logged"] = True
+                self.write(
+                    "recovered_signal_passed", slug=candidate["slug"],
+                    side=candidate["side"],
+                    initial_rejection_reason=candidate.get(
+                        "initial_rejection_reason"),
+                    snapshot=snapshot,
+                    confirmation_snapshots=candidate.get("recovery_pass_count"),
+                    execution_enabled=self.recovered_signals_enabled)
         quote = (record.get("quotes") or {}).get(candidate["side"], {})
         if not quote.get("ready") or quote.get("ask") is None:
             candidate["rejections"]["ask_unavailable"] += 1
@@ -93,12 +267,6 @@ class RealTrader(TradingEngine):
                 and ask <= float(minimum_entry_price) + 1e-12):
             candidate["rejections"]["price_below_entry_floor"] += 1
             return
-        signal_ask = candidate.get("signal_ask")
-        adverse_limit = candidate.get("maximum_adverse_price_move")
-        if (adverse_limit is not None and signal_ask is not None
-                and float(signal_ask) - ask > float(adverse_limit) + 1e-12):
-            candidate["rejections"]["adverse_price_move_requires_confirmation"] += 1
-            return
         if ask > candidate["maximum_value_price"] + 1e-12:
             candidate["rejections"]["edge_below_minimum"] += 1
             return
@@ -106,24 +274,60 @@ class RealTrader(TradingEngine):
         # the order to the actual available cash. A full account snapshot here
         # also loads positions and open orders; on a live entry that delay can
         # turn the quote which passed the guard into a stale quote.
-        cash = max(0.0, self.bankroll)
-        budget = risk_adjusted_allocation(
-            cash, self.allocation_fraction, self.maximum_trade_usd,
-            candidate["risk_allocation_multiplier"])
+        recovered = candidate.get("capital_pool") == "profit_trading"
+        capital_before = max(
+            0.0, self.protected_profit if recovered else self.bankroll)
+        account_cash = (max(0.0, float(self.account_balance))
+                        if self.account_balance is not None else capital_before)
+        cash = min(capital_before, account_cash)
+        fee_multiplier = 1 + candidate["fee_rate"] * (1 - ask)
+        if recovered:
+            desired_total = capital_before * self.recovered_allocation_fraction
+            minimum_total = fee_multiplier
+            if 0 < desired_total < minimum_total and capital_before >= minimum_total:
+                desired_total = minimum_total
+            total_budget = min(capital_before, account_cash, desired_total)
+            budget = total_budget / fee_multiplier if total_budget > 0 else 0
+        else:
+            budget = risk_adjusted_allocation(
+                cash, self.allocation_fraction, self.maximum_trade_usd,
+                candidate["risk_allocation_multiplier"],
+                minimum_trade_usd=0 if self.protect_profits else 1)
+            total_budget = budget
+            if self.protect_profits:
+                # Keep principal plus the estimated fee inside the fixed cap.
+                budget = total_budget / fee_multiplier
         # Preserve a non-zero warning allocation while meeting the venue's
         # $1 market-buy minimum. Session activation guarantees the normal
         # allocation itself can fund this floor.
-        if (0 < budget < 1 and cash >= 1
+        if (not self.protect_profits and 0 < budget < 1 and cash >= 1
                 and (self.maximum_trade_usd is None or self.maximum_trade_usd >= 1)):
             budget = 1.0
         budget = float(Decimal(str(budget)).quantize(
             Decimal("0.01"), rounding=ROUND_FLOOR))
         if budget <= 0:
             candidate["rejections"]["no_money"] += 1
+            if recovered:
+                self._record_recovered_opportunity(
+                    candidate, observed_ms, ask, fee_multiplier,
+                    "profit_balance_unavailable")
             return
+        if budget < 1:
+            candidate["rejections"]["trade_budget_below_exchange_minimum"] += 1
+            if recovered:
+                self._record_recovered_opportunity(
+                    candidate, observed_ms, ask, fee_multiplier,
+                    "profit_balance_below_exchange_minimum")
+            return
+        candidate["capital_allocation"] = total_budget
         visible = quote.get("ask_size")
         if visible is None or float(visible) + 1e-9 < budget / ask:
             candidate["rejections"]["insufficient_size"] += 1
+            return
+        if recovered and not self.recovered_signals_enabled:
+            self._record_recovered_opportunity(
+                candidate, observed_ms, ask, total_budget,
+                "recovered_execution_disabled")
             return
         if observed_ms < candidate.get("next_order_attempt_ms", 0):
             candidate["rejections"]["exchange_retry_cooldown"] += 1
@@ -136,15 +340,15 @@ class RealTrader(TradingEngine):
                 run_id=self.run_id, slug=slug, outcome=candidate["side"],
                 amount_usd=Decimal(str(budget)),
                 maximum_price=Decimal(str(candidate["maximum_value_price"])),
-                signal_ask=(Decimal(str(signal_ask))
-                            if signal_ask is not None else None),
-                maximum_adverse_price_move=(Decimal(str(adverse_limit))
-                                             if adverse_limit is not None else None),
+                signal_ask=None,
+                maximum_adverse_price_move=None,
                 minimum_entry_price=(Decimal(str(minimum_entry_price))
                                      if minimum_entry_price is not None else None))
         except ValueError as error:  # Preflight failed before order submission.
             candidate["rejections"]["exchange_preflight"] += 1
             self.write("order_preflight_rejected", slug=slug, side=candidate["side"],
+                       entry_mode=candidate.get("entry_mode", "core"),
+                       capital_pool=candidate.get("capital_pool", "core_trading"),
                        message=str(error)[:240], bankroll=cash)
             return
         except AutomaticOrderSubmissionError as error:
@@ -154,6 +358,8 @@ class RealTrader(TradingEngine):
             self.handled.add(slug)
             self.write("order_submission_uncertain", slug=slug,
                        side=candidate["side"], message=str(error)[:240],
+                       entry_mode=candidate.get("entry_mode", "core"),
+                       capital_pool=candidate.get("capital_pool", "core_trading"),
                        retry_suppressed=True, bankroll=cash)
             self.request_stop("order_submission_uncertain")
             self.write_status("STOPPING", last_slug=slug,
@@ -163,6 +369,8 @@ class RealTrader(TradingEngine):
 
         if result.get("ok") is False:
             self.write("order_rejected", slug=slug, side=candidate["side"],
+                       entry_mode=candidate.get("entry_mode", "core"),
+                       capital_pool=candidate.get("capital_pool", "core_trading"),
                        response=result, rejection_code=result.get("code"),
                        message=result.get("message"), bankroll=cash)
             retryable = result.get("retryable")
@@ -192,18 +400,21 @@ class RealTrader(TradingEngine):
             self.write("order_submission_uncertain", slug=slug,
                        side=candidate["side"], response=result,
                        order_id=result.get("order_id"),
+                       entry_mode=candidate.get("entry_mode", "core"),
+                       capital_pool=candidate.get("capital_pool", "core_trading"),
                        retry_suppressed=True, bankroll=cash)
             self.pending_orders[slug] = {
                 "candidate": {key: value for key, value in candidate.items()
                               if key != "rejections"},
-                "response": result, "cash_before": cash,
+                "response": result, "cash_before": capital_before,
                 "budget": budget, "ask": ask, "observed_ms": observed_ms,
             }
             self.write_status("ORDER_PENDING_CONFIRMATION", last_slug=slug,
                               last_result="ORDER_PENDING_CONFIRMATION")
             return
 
-        self._record_confirmed_fill(candidate, result, observed_ms, cash, budget, ask)
+        self._record_confirmed_fill(
+            candidate, result, observed_ms, capital_before, budget, ask)
 
     def _record_confirmed_fill(self, candidate, result, observed_ms, cash, budget, ask):
         """Record one exchange-confirmed FOK fill in the session ledger."""
@@ -222,7 +433,11 @@ class RealTrader(TradingEngine):
         cost = principal + fee
         fill = {"price": price, "shares": shares, "fee": fee, "cost": cost,
                 "allocation": budget, "assumption": "exchange_fok_response"}
-        self.bankroll = max(0.0, cash - cost)
+        capital_pool = candidate.get("capital_pool", "core_trading")
+        if capital_pool == "profit_trading":
+            self.protected_profit = max(0.0, cash - cost)
+        else:
+            self.bankroll = max(0.0, cash - cost)
         position = {key: value for key, value in candidate.items() if key != "rejections"}
         position.update(fill=fill, entry_ms=observed_ms,
                         entry_delay_seconds=(observed_ms - candidate["decision_ms"]) / 1000,
@@ -232,13 +447,23 @@ class RealTrader(TradingEngine):
         self.trade_count += 1
         self.write("trade_filled", slug=slug, side=candidate["side"],
                    forecast_probability=candidate["chance"],
+                   forecast_strength=candidate.get("strength"),
+                   fresh_snapshot=candidate.get("fresh_snapshot"),
                    maximum_value_price=candidate["maximum_value_price"],
                    entry_ms=observed_ms,
                    entry_delay_seconds=position["entry_delay_seconds"],
                    entry_remaining_seconds=position["entry_remaining_seconds"],
                    price=price, shares=shares, fee=fee, trade_cost=cost,
+                   capital_allocation=candidate.get("capital_allocation", budget),
+                   order_principal=principal,
                    fee_rate=candidate["fee_rate"],
                    bankroll_after_entry=self.bankroll,
+                   protected_profit=self.protected_profit,
+                   profit_trading_balance=self.protected_profit,
+                   entry_mode=candidate.get("entry_mode", "core"),
+                   capital_pool=capital_pool,
+                   initial_rejection_reason=candidate.get(
+                       "initial_rejection_reason"),
                    thin_gap=candidate["thin_gap"],
                    movement_disagreement=candidate["movement_disagreement"],
                    risk_allocation_multiplier=candidate["risk_allocation_multiplier"],
@@ -263,6 +488,12 @@ class RealTrader(TradingEngine):
         pending = self.pending_orders.pop(slug, None)
         if pending is not None:
             response = pending["response"]
+            pending_candidate = pending["candidate"]
+            pending_channel = {
+                "entry_mode": pending_candidate.get("entry_mode", "core"),
+                "capital_pool": pending_candidate.get(
+                    "capital_pool", "core_trading"),
+            }
             try:
                 confirmed = self.account.confirm_automatic_order(
                     str(response.get("order_id") or ""),
@@ -271,18 +502,19 @@ class RealTrader(TradingEngine):
                 confirmed = None
                 self.write("order_confirmation_error", slug=slug,
                            order_id=response.get("order_id"),
-                           message=str(error)[:240])
+                           message=str(error)[:240], **pending_channel)
             if confirmed is not None:
                 recovered = {**response, **confirmed, "ok": True}
                 self._record_confirmed_fill(
                     pending["candidate"], recovered, pending["observed_ms"],
                     pending["cash_before"], pending["budget"], pending["ask"])
                 self.write("order_confirmation_recovered", slug=slug,
-                           order_id=response.get("order_id"), response=recovered)
+                           order_id=response.get("order_id"), response=recovered,
+                           **pending_channel)
             else:
                 self.write("order_unconfirmed_at_resolution", slug=slug,
                            order_id=response.get("order_id"), response=response,
-                           retry_suppressed=True)
+                           retry_suppressed=True, **pending_channel)
                 self.stop_reason = self.stop_reason or "order_confirmation_failed"
                 self.accepting_entries = False
                 self._finish_stop()

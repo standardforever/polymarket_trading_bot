@@ -1,0 +1,10 @@
+{
+  "source_files": [
+    "stage4-round-history.jsonl",
+    "stage4-round-history_1.jsonl"
+  ],
+  "retained_strategy_first_start": 1790530800,
+  "retained_strategy_last_legacy_start": 1791484200,
+  "retained_rounds": 732,
+  "retained_rows": 1463
+}

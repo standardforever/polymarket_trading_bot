@@ -39,8 +39,8 @@ the round is skipped.
 Movement direction is a majority vote over 10, 30 and 60-second momentum plus
 the 30-second TWAP slope. Polymarket direction comes from its current implied
 probability. A trade requires Polymarket direction to agree with the predicted
-side, fresh data, sufficient visible liquidity, the session confidence
-threshold, and the session minimum edge after estimated fees.
+side, fresh data, sufficient visible liquidity, at least 98% confidence,
+strength strictly above 2.5, and positive expected value after estimated fees.
 
 ## Close-to-line constraints
 
@@ -51,26 +51,51 @@ thin_gap_distance = min(abs(spot_gap_bps), abs(twap_gap_bps))
 thin_gap = thin_gap_distance < 5
 ```
 
-It skips the round when a thin gap appears together with either movement
-disagreement or a `choppy_up` regime:
+It skips the round when either a thin gap or movement disagreement appears:
 
 ```text
-SKIP when thin_gap AND (movement_disagreement OR choppy_up)
+SKIP when thin_gap OR movement_disagreement
 ```
 
-A thin gap or movement disagreement by itself remains a warning. The trading
-session controls the percentage of normal position size used for either
-warning; setting a percentage to zero skips that warning type.
+The `choppy_up` regime remains visible in the record but does not block a trade
+by itself.
 
 ## Entry monitoring
 
-After a qualified signal, the trader watches for an executable ask below the
-maximum price allowed by the configured edge. It stops opening new entries at
-the session cutoff. It pauses entry while the selected contract is at or below 80
-cents or more than 10 cents below its signal-time ask. The candidate remains
-active and may trade if the price recovers to both limits before the cutoff.
+After the initial decision, the trader watches until 30 seconds remain. A clean
+signal enters the core path. A rejected signal enters the recovery path instead
+of being discarded. Before each order attempt the trader rebuilds probability,
+strength, movement warnings, market agreement, and the value limit from the
+latest inputs. It waits while the selected contract is at or below 80 cents or
+above 97 cents. A cheaper price is accepted only when that fresh calculation
+still passes every rule.
+
+A recovery candidate has its own prediction gate. It passes when the current
+fresh side has at least 90% probability, strength strictly above 2.5, and both
+the spot and TWAP gaps are at least 5 bps from the opening line. Movement,
+market-direction, and choppy-regime disagreements remain visible as warnings
+but do not block this path. The side may change while the candidate is being
+monitored; execution uses the side that passes the fresh gate.
+
+The passing side must hold those conditions for three consecutive fresh
+snapshots over at least two seconds. A direction change restarts that short
+confirmation window. This prevents snapshots for opposite sides from being
+combined while still allowing a rejected market to become tradable later.
 
 Real orders use bounded fill-or-kill execution. The bot checks the live ask and
 the executable price encoded in the signed order before posting it. Fees,
 visible liquidity, account cash and the session allocation cap are also checked
-before submission.
+before submission. Each order uses 80% of eligible session trading capital.
+After a win, only the original trade cost returns to trading capital; profit is
+stored in the profit-trading wallet. Core trades continue to use 80% of core
+capital. Recovered trades use 50% of the profit-trading wallet and cannot use
+core capital or the safe reserve. If that allocation is below the exchange's
+$1 principal minimum, it is raised to the minimum only when the profit wallet
+can cover the principal and fee. A loss reduces only the wallet that funded the
+trade.
+
+The dashboard can disable recovered execution without disabling observation.
+The bot still records the first fillable recovered opportunity and settles its
+hypothetical result. Core trading, profit trading, and safe reserve are separate
+persistent ledger balances. Funds can be transferred between them explicitly
+from the Profit trades screen.

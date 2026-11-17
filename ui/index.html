@@ -20,6 +20,7 @@
         <button class="nav-item active" data-view="dashboard"><span>⌁</span>Overview</button>
         <button class="nav-item" data-view="history"><span>↺</span>Round history</button>
         <button class="nav-item" data-view="trades"><span>⇄</span>Bot trades</button>
+        <button class="nav-item" data-view="profit"><span>◇</span>Profit trades</button>
       </nav>
       <div class="sidebar-foot">
         <div class="connection"><i id="connectionDot"></i><span id="connectionText">Connecting</span></div>
@@ -38,7 +39,7 @@
           <div><span>Collector</span><b id="collectorStatus">Checking</b></div>
           <div><span>Current round</span><b class="mono" id="currentRound">—</b></div>
           <div><span>Time remaining</span><b class="mono" id="countdown">—</b></div>
-          <div><span>Bot session balance</span><b id="bankroll">Not running</b></div>
+          <div><span>Trading capital</span><b id="bankroll">Not running</b></div>
           <div><span>Real account value</span><b id="realBalance">Connecting</b></div>
         </div>
 
@@ -49,7 +50,7 @@
           </div>
           <div class="automation-control">
             <span class="pill muted" id="autoTradingStatus">CHECKING</span>
-            <label class="automation-switch" for="autoTradingToggle"><span>Trade automatically</span><input id="autoTradingToggle" type="checkbox" class="switch"></label>
+            <button class="primary-button automation-button" id="autoTradingButton">Start bot</button>
           </div>
         </article>
 
@@ -161,14 +162,14 @@
       <section class="view" id="tradesView">
         <div class="trading-history-layout">
           <article class="card session-browser">
-            <div class="card-head"><div><span class="label">REAL-MONEY SESSIONS</span><h2>Automated trading</h2><p>Newest first</p></div><button class="secondary-button" id="newSessionButton">＋ New</button></div>
+            <div class="card-head"><div><span class="label">REAL-MONEY SESSIONS</span><h2>Automated trading</h2><p>Newest first</p></div><button class="secondary-button" id="newSessionButton">Start bot</button></div>
             <div class="session-list" id="sessionList"></div>
             <div class="empty-state hidden" id="sessionsEmpty">No trading sessions yet. Create one from the home page.</div>
             <div class="pagination session-pagination" id="sessionsPagination"><button class="secondary-button" id="sessionsPrevious">Previous</button><span id="sessionsPageInfo">Page 1</span><button class="secondary-button" id="sessionsNext">Next</button></div>
           </article>
           <div class="session-detail-panel">
             <article class="card session-summary-card">
-              <div class="card-head"><div><span class="label">SELECTED SESSION</span><h2 id="sessionLedgerTitle">Select a session</h2><p class="session-rules" id="sessionRules"></p></div><button class="secondary-button hidden" id="editSessionButton">Edit configuration</button></div>
+              <div class="card-head"><div><span class="label">SELECTED SESSION</span><h2 id="sessionLedgerTitle">Select a session</h2><p class="session-rules" id="sessionRules"></p></div></div>
               <div class="metrics trade-metrics" id="tradeMetrics"></div>
             </article>
             <article class="card table-card">
@@ -186,54 +187,54 @@
         </div>
       </section>
 
+      <section class="view" id="profitView">
+        <article class="automation-card profit-automation-card">
+          <div class="automation-copy">
+            <span class="automation-mark">◇</span>
+            <div><span class="label">RECOVERED SIGNALS</span><strong>Trade a fresh side after it reaches the recovery gate</strong><p id="recoveredExecutionCopy">Requires at least 90% probability, strength above 2.5, and a gap of at least 5 bps.</p></div>
+          </div>
+          <div class="automation-control">
+            <span class="pill muted" id="recoveredExecutionStatus">CHECKING</span>
+            <button class="primary-button automation-button" id="recoveredExecutionButton">Enable</button>
+          </div>
+        </article>
+
+        <div class="fund-wallet-grid">
+          <article class="card wallet-card"><span>SAFE RESERVE</span><strong id="safeReserveBalance">—</strong><p>Never used automatically.</p></article>
+          <article class="card wallet-card"><span>CORE TRADING</span><strong id="coreTradingBalance">—</strong><p>Funds clean signals that pass immediately.</p></article>
+          <article class="card wallet-card accent"><span>PROFIT TRADING</span><strong id="profitTradingBalance">—</strong><p>Funds recovered signals at 50% per entry.</p></article>
+          <article class="card wallet-card"><span>LIQUID USDC</span><strong id="profitLiquidBalance">—</strong><p>Actual spendable Polymarket cash.</p></article>
+        </div>
+
+        <article class="card fund-transfer-card">
+          <div class="card-head"><div><span class="label">INTERNAL FUND TRANSFER</span><h2>Move uncommitted funds</h2><p>These transfers change the bot ledger; they do not submit an on-chain transaction.</p></div></div>
+          <div class="fund-transfer-form">
+            <label><span>From</span><select id="fundTransferSource"><option value="safe_reserve">Safe reserve</option><option value="core_trading">Core trading</option><option value="profit_trading">Profit trading</option></select></label>
+            <label><span>To</span><select id="fundTransferDestination"><option value="profit_trading">Profit trading</option><option value="core_trading">Core trading</option><option value="safe_reserve">Safe reserve</option></select></label>
+            <label><span>Amount</span><input id="fundTransferAmount" type="number" min="0.01" step="0.01" placeholder="0.00"></label>
+            <button class="primary-button" id="fundTransferButton">Move funds</button>
+          </div>
+        </article>
+
+        <div class="metrics" id="recoveredMetrics"></div>
+
+        <div class="profit-layout">
+          <article class="card">
+            <div class="card-head"><div><span class="label">LIVE SHADOW MONITORING</span><h2>Rejected signals still being checked</h2></div><span class="pill muted" id="recoveredCandidateCount">0 ACTIVE</span></div>
+            <div class="recovered-candidates" id="recoveredCandidates"><div class="empty-state">No rejected signal is currently being monitored.</div></div>
+          </article>
+          <article class="card session-events-card">
+            <div class="card-head"><div><span class="label">RECOVERED-SIGNAL LEDGER</span><h2>Analysis and execution activity</h2></div></div>
+            <div class="session-events" id="recoveredActivity"><div class="empty-state">No recovered-signal activity yet.</div></div>
+            <div class="pagination session-pagination" id="recoveredPagination"><button class="secondary-button" id="recoveredPrevious">Previous</button><span id="recoveredPageInfo">Page 1</span><button class="secondary-button" id="recoveredNext">Next</button></div>
+          </article>
+        </div>
+      </section>
+
     </main>
   </div>
 
   <dialog id="roundDialog"><button class="dialog-close" id="dialogClose">×</button><div id="roundDetail"></div></dialog>
-  <dialog id="sessionDialog">
-    <button class="dialog-close" id="sessionDialogClose">×</button>
-    <p class="eyebrow">NEW REAL-MONEY SESSION</p><h2>Set the automatic trading rules</h2>
-    <form id="sessionForm" class="session-form">
-      <div class="full mode-field"><span>Account funding</span><small>Uses live available USDC from your connected Polymarket account.</small></div>
-      <label class="full"><span>Session name <small>Optional label for this run</small></span><input name="name" maxlength="60" placeholder="Morning BTC session"></label>
-      <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" value="80" required><i>%</i></div></label>
-      <label><span>Maximum per trade <small>Optional dollar cap</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="1" step="0.01" placeholder="No cap"></div></label>
-      <label><span>Minimum confidence</span><div class="input-unit suffix"><input name="confidence_percent" type="number" min="50" max="98" step="0.1" value="90" required><i>%</i></div></label>
-      <label><span>Minimum profit edge</span><div class="input-unit suffix"><input name="minimum_edge_percent" type="number" min="0" max="99" step="0.1" value="3" required><i>%</i></div></label>
-      <label><span>Stop new entries at</span><div class="input-unit suffix"><input name="entry_cutoff_seconds" type="number" min="5" max="109" step="1" value="30" required><i>sec</i></div></label>
-      <label><span>Thin-gap trade size <small>Percentage of the normal trade; 0 means skip</small></span><div class="input-unit suffix"><input name="thin_gap_allocation_percent" type="number" min="0" max="100" step="1" value="25" required><i>%</i></div></label>
-      <label><span>Movement-warning size <small>Percentage of the normal trade; 0 means skip</small></span><div class="input-unit suffix"><input name="movement_disagreement_allocation_percent" type="number" min="0" max="100" step="1" value="50" required><i>%</i></div></label>
-      <label><span>Maximum trades <small>Blank means no trade-count limit</small></span><input name="max_trades" type="number" min="1" max="288" step="1" placeholder="Until stopped"></label>
-      <label><span>Stop after profit <small>Optional realized profit target</small></span><div class="input-unit"><i>$</i><input name="target_profit_usd" type="number" min="0.01" step="0.01" placeholder="No target"></div></label>
-      <label><span>Stop after loss <small>Optional realized loss limit</small></span><div class="input-unit"><i>$</i><input name="max_loss_usd" type="number" min="0.01" step="0.01" placeholder="No limit"></div></label>
-      <div class="session-preview full"><span>Planned first-trade budget</span><strong id="sessionBudgetPreview">$40.00</strong><small id="sessionRiskBudgetPreview">Thin gap and movement-warning amounts will appear here.</small></div>
-      <div class="risk-rule-note full"><strong id="sessionRiskRuleTitle">Combined-risk protection</strong><span id="sessionRiskRuleCopy">A thin gap together with movement disagreement is always skipped.</span></div>
-      <p class="form-message full" id="sessionFormMessage"></p>
-      <button class="primary-button full" id="startSessionButton" type="submit">Activate real-money bot</button>
-    </form>
-  </dialog>
-  <dialog id="sessionEditDialog">
-    <button class="dialog-close" id="editSessionDialogClose">×</button>
-    <p class="eyebrow">ACTIVE TRADING SESSION</p><h2>Edit runtime configuration</h2>
-    <p class="dialog-intro">Changes apply to future entries. Edge and cutoff changes also update an unfilled candidate currently being monitored. An open position keeps its original entry.</p>
-    <form id="sessionEditForm" class="session-form">
-      <label class="full"><span>Session name</span><input name="name" maxlength="60"></label>
-      <label><span>Balance used per trade</span><div class="input-unit suffix"><input name="allocation_percent" type="number" min="1" max="100" step="1" required><i>%</i></div></label>
-      <label><span>Maximum per trade <small>Optional dollar cap</small></span><div class="input-unit"><i>$</i><input name="maximum_trade_usd" type="number" min="0.01" step="0.01" placeholder="No cap"></div></label>
-      <label><span>Minimum confidence</span><div class="input-unit suffix"><input name="confidence_percent" type="number" min="50" max="98" step="0.1" required><i>%</i></div></label>
-      <label><span>Minimum profit edge</span><div class="input-unit suffix"><input name="minimum_edge_percent" type="number" min="0" max="99" step="0.1" required><i>%</i></div></label>
-      <label><span>Stop new entries at</span><div class="input-unit suffix"><input name="entry_cutoff_seconds" type="number" min="5" max="109" step="1" required><i>sec</i></div></label>
-      <label><span>Thin-gap trade size <small>Percentage of normal; 0 means skip</small></span><div class="input-unit suffix"><input name="thin_gap_allocation_percent" type="number" min="0" max="100" step="1" required><i>%</i></div></label>
-      <label><span>Movement-warning size <small>Percentage of normal; 0 means skip</small></span><div class="input-unit suffix"><input name="movement_disagreement_allocation_percent" type="number" min="0" max="100" step="1" required><i>%</i></div></label>
-      <label><span>Maximum trades <small>Blank means no limit</small></span><input name="max_trades" type="number" min="1" max="288" step="1" placeholder="Until stopped"></label>
-      <label><span>Stop after profit</span><div class="input-unit"><i>$</i><input name="target_profit_usd" type="number" min="0.01" step="0.01" placeholder="No target"></div></label>
-      <label><span>Stop after loss</span><div class="input-unit"><i>$</i><input name="max_loss_usd" type="number" min="0.01" step="0.01" placeholder="No limit"></div></label>
-      <div class="session-preview full"><span>Next-trade budget</span><strong id="editSessionBudgetPreview">—</strong><small id="editSessionRiskBudgetPreview">Thin gap and movement-warning amounts will appear here.</small></div>
-      <div class="risk-rule-note full"><strong id="editSessionRiskRuleTitle">Combined-risk protection</strong><span id="editSessionRiskRuleCopy">A thin gap together with movement disagreement is always skipped.</span></div>
-      <p class="form-message full" id="editSessionFormMessage"></p>
-      <button class="primary-button full" type="submit">Apply changes</button>
-    </form>
-  </dialog>
   <dialog id="orderDialog" class="order-dialog">
     <button class="dialog-close" id="orderDialogClose">×</button>
     <p class="eyebrow">REAL MONEY ORDER</p><h2 id="orderDialogTitle">Review order</h2>
@@ -244,6 +245,6 @@
   </dialog>
   <div class="toast" id="toast"></div>
   <script src="config.js"></script>
-  <script type="module" src="app.js?v=20261008-real-only"></script>
+  <script type="module" src="app.js?v=20261017-recovery-gate"></script>
 </body>
 </html>

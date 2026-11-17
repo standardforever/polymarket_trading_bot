@@ -100,6 +100,9 @@ class BotRepository:
             for row in _jsonl(path) or ():
                 if row.get("event") not in ("trade_filled", "trade_resolved"):
                     continue
+                if (row.get("entry_mode") == "recovered"
+                        or row.get("capital_pool") == "profit_trading"):
+                    continue
                 key = (row.get("run_id"), row.get("slug"))
                 item = trades.setdefault(key, {"run_id": key[0], "slug": key[1]})
                 item["fill" if row["event"] == "trade_filled" else "resolution"] = row
@@ -159,6 +162,9 @@ class BotRepository:
                 "entry_ms": fill.get("entry_ms"), "entry_price": fill.get("price"),
                 "shares": fill.get("shares"), "fee": fill.get("fee"),
                 "cost": fill.get("trade_cost"), "maximum_value_price": fill.get("maximum_value_price"),
+                "entry_mode": fill.get("entry_mode", "core"),
+                "capital_pool": fill.get("capital_pool", "core_trading"),
+                "initial_rejection_reason": fill.get("initial_rejection_reason"),
                 "actual": resolution.get("actual"), "profit": resolution.get("profit"),
                 "payout": resolution.get("payout"), "resolved_ms": resolution.get("recorded_ms"),
             })
@@ -198,8 +204,23 @@ class BotRepository:
                             if row.get("status") == "OPEN")
             status = dict(status)
             reconstructed_cash = max(0.0, starting + realized_profit - open_cost)
-            if live_cash is not None and status.get("status") not in TERMINAL_STATUSES:
+            if metadata["configuration"].get("protect_profits"):
+                protected = sum(max(float(row.get("profit") or 0), 0)
+                                for row in session_trades if row.get("status") != "OPEN")
+                lost = sum(float(row.get("cost") or 0) for row in session_trades
+                           if row.get("status") == "LOSS")
+                reconstructed_capital = max(0.0, starting - lost - open_cost)
+                status["trading_capital"] = float(status.get(
+                    "trading_capital", reconstructed_capital))
+                status["protected_profit"] = float(status.get(
+                    "protected_profit", protected))
+                status["available_bankroll"] = status["trading_capital"]
+                status["balance_source"] = "protected_session_ledger"
+                if live_cash is not None and status.get("status") not in TERMINAL_STATUSES:
+                    status["account_balance"] = live_cash
+            elif live_cash is not None and status.get("status") not in TERMINAL_STATUSES:
                 status["available_bankroll"] = live_cash
+                status["account_balance"] = live_cash
                 status["balance_source"] = "account_api"
             else:
                 status["available_bankroll"] = reconstructed_cash
@@ -230,6 +251,10 @@ class BotRepository:
         session["events"] = [
             _clean_event(row)
             for row in (_jsonl(self.real_folder / f"real-{session_id}.jsonl") or ())
+            if not (str(row.get("event") or "").startswith("recovered_")
+                    or row.get("event") == "fund_transfer"
+                    or row.get("entry_mode") == "recovered"
+                    or row.get("capital_pool") == "profit_trading")
         ]
         return session
 

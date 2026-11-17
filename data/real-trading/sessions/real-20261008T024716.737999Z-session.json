@@ -1,0 +1,20 @@
+{
+  "session_id": "20261008T024716.737999Z",
+  "created_ms": 1791427636738,
+  "name": "Real session 20261008T024716",
+  "configuration": {
+    "model_version": "btc_twap_v2",
+    "starting_bankroll": 4.519635,
+    "allocation_fraction": 0.66,
+    "maximum_trade_usd": 4.5,
+    "model_threshold": 0.9,
+    "minimum_edge": 0.03,
+    "entry_cutoff_seconds": 30.0,
+    "max_trades": null,
+    "target_profit_usd": 1.0,
+    "max_loss_usd": null,
+    "thin_gap_allocation_fraction": 0.25,
+    "movement_disagreement_allocation_fraction": 0.5,
+    "planned_first_trade_budget": 2.9829591
+  }
+}

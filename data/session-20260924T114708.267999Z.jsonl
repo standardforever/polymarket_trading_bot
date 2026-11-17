@@ -1,0 +1,88 @@
+{"kind":"price_connected","received_ms":1790250429278,"source":"polybolt"}
+{"kind":"error","received_ms":1790250472126,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790250498459,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790250509225,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790250514472,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790250523987,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790250602426,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790250675943,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790250760568,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790250856474,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790251015017,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790251037120,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790251276057,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"price_error","received_ms":1790251288200,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790251288354,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790251290311,"source":"polybolt"}
+{"kind":"error","received_ms":1790251501958,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790251801704,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790251845468,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790251857891,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790252030625,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790252040348,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790252056875,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790252073161,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790252220051,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790252403111,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790252406204,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790252410055,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790252702487,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790252732479,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790252736138,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790253610386,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790253612868,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790253651757,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790253656917,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790254181297,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790254184250,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790254257399,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790255125981,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790255128292,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790255279608,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790255285451,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790255295330,"message":"float() argument must be a string or a real number, not 'NoneType'"}
+{"kind":"error","received_ms":1790255401856,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790255404182,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790255423147,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790255428589,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790255437917,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790255470701,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790255487101,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790255587310,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790256302078,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790256602060,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790256604360,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790256607799,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790256633587,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790257502679,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790257571279,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790257656696,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"price_error","received_ms":1790257669225,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790257672234,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790257689732,"source":"polybolt","error":"OSError"}
+{"kind":"price_disconnected","received_ms":1790257689733,"source":"polybolt"}
+{"kind":"error","received_ms":1790257692511,"message":"No messages or PONG for 25 seconds"}
+{"kind":"price_connected","received_ms":1790257693563,"source":"polybolt"}
+{"kind":"error","received_ms":1790257700652,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"error","received_ms":1790257749163,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790257866913,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790257869788,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"error","received_ms":1790257940551,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790257966895,"message":"[Errno 54] Connection reset by peer"}
+{"kind":"error","received_ms":1790257974917,"message":"('Connection aborted.', BrokenPipeError(32, 'Broken pipe'))"}
+{"kind":"price_error","received_ms":1790257977610,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790257980617,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790257997522,"source":"polybolt","error":"OSError"}
+{"kind":"price_disconnected","received_ms":1790257997522,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790258000436,"source":"polybolt"}
+{"kind":"price_error","received_ms":1790258029175,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790258032182,"source":"polybolt"}
+{"kind":"error","received_ms":1790258037043,"message":"No messages or PONG for 25 seconds"}
+{"kind":"price_connected","received_ms":1790258038118,"source":"polybolt"}
+{"kind":"error","received_ms":1790258052203,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"error","received_ms":1790258702384,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"price_error","received_ms":1790260400674,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790260403818,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790260406660,"source":"polybolt"}
+{"kind":"error","received_ms":1790260502298,"message":"Out-of-order book update; reconnect for a new snapshot"}
+{"kind":"price_disconnected","received_ms":1790260575287,"source":"polybolt"}

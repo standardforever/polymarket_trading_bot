@@ -1,6 +1,6 @@
 """Shared market validation and fee calculations used by live prediction."""
 
-MINIMUM_EDGE = .03
+MINIMUM_EDGE = 0.0
 MINIMUM_SHARES = 5
 
 

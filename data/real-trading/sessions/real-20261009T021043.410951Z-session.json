@@ -1,0 +1,19 @@
+{
+  "session_id": "20261009T021043.410951Z",
+  "created_ms": 1791511843410,
+  "name": "Real session 20261009T021043",
+  "configuration": {
+    "allocation_fraction": 0.68,
+    "maximum_trade_usd": null,
+    "model_threshold": 0.9,
+    "minimum_edge": 0.03,
+    "entry_cutoff_seconds": 30.0,
+    "max_trades": 5,
+    "target_profit_usd": null,
+    "max_loss_usd": null,
+    "thin_gap_allocation_fraction": 0.25,
+    "movement_disagreement_allocation_fraction": 0.5,
+    "starting_bankroll": 4.528481,
+    "planned_first_trade_budget": 3.0793670800000004
+  }
+}

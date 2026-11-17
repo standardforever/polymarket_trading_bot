@@ -7,8 +7,7 @@ from collections import Counter
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .strategy import (MAXIMUM_ADVERSE_PRICE_MOVE, MINIMUM_ENTRY_PRICE, RISK_RULE,
-                       probability_from_decision)
+from .strategy import MINIMUM_ENTRY_PRICE, RISK_RULE, probability_from_decision
 
 
 def allocation(bankroll):
@@ -111,7 +110,17 @@ class TradingEngine:
                  target_profit_usd=None, max_loss_usd=None, run_id=None,
                  session_name=None, thin_gap_allocation_fraction=.25,
                  movement_disagreement_allocation_fraction=.5,
-                 resume=False):
+                 minimum_strength=0.0, maximum_entry_price=None,
+                 protect_profits=False, fresh_revalidation=False,
+                 strict_risk_rules=False, recovered_signals_enabled=False,
+                 recovered_allocation_fraction=.5,
+                 recovered_model_threshold=.90,
+                 recovered_minimum_strength=2.5,
+                 recovered_minimum_gap_bps=5.0,
+                 recovery_confirmation_snapshots=3,
+                 recovery_confirmation_seconds=2.0,
+                 safe_reserve=0.0, profit_trading_balance=0.0,
+                 shadow_rejected_signals=True, resume=False):
         self.data = Path(data)
         self.starting_bankroll = self.bankroll = float(bankroll)
         self.minimum_edge = float(minimum_edge)
@@ -126,12 +135,32 @@ class TradingEngine:
         self.thin_gap_allocation_fraction = float(thin_gap_allocation_fraction)
         self.movement_disagreement_allocation_fraction = float(
             movement_disagreement_allocation_fraction)
+        self.minimum_strength = float(minimum_strength)
+        self.maximum_entry_price = maximum_entry_price
+        self.protect_profits = bool(protect_profits)
+        self.fresh_revalidation = bool(fresh_revalidation)
+        self.strict_risk_rules = bool(strict_risk_rules)
+        self.recovered_signals_enabled = bool(recovered_signals_enabled)
+        self.recovered_allocation_fraction = float(recovered_allocation_fraction)
+        self.recovered_model_threshold = float(recovered_model_threshold)
+        self.recovered_minimum_strength = float(recovered_minimum_strength)
+        self.recovered_minimum_gap_bps = float(recovered_minimum_gap_bps)
+        self.recovery_confirmation_snapshots = max(
+            1, int(recovery_confirmation_snapshots))
+        self.recovery_confirmation_ms = max(
+            0, int(float(recovery_confirmation_seconds) * 1000))
+        self.shadow_rejected_signals = bool(shadow_rejected_signals)
+        self.safe_reserve = max(0.0, float(safe_reserve))
+        self.protected_profit = max(0.0, float(profit_trading_balance))
         self.session_name = session_name
         stamp = run_id or datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%S.%fZ")
         self.run_id = stamp
         self.folder = self.data / "real-trading" / "sessions"
         self.folder.mkdir(parents=True, exist_ok=True)
+        self.recovery_folder = self.data / "real-trading" / "profit-signals"
+        self.recovery_folder.mkdir(parents=True, exist_ok=True)
         self.log_path = self.folder / f"real-{stamp}.jsonl"
+        self.recovery_log_path = self.recovery_folder / f"profit-{stamp}.jsonl"
         self.status_path = self.folder / f"real-{stamp}-status.json"
         self.session_started_ms = (time.time_ns() // 1_000_000) if resume else 0
         prior_status = {}
@@ -141,18 +170,24 @@ class TradingEngine:
             except (OSError, ValueError):
                 prior_status = {}
         self.log_file = self.log_path.open("a" if resume else "x", buffering=1)
+        self.recovery_log_file = self.recovery_log_path.open(
+            "a" if resume or self.recovery_log_path.exists() else "x", buffering=1)
         # A resumed process must replay persisted decisions and resolutions that
         # may have arrived while the API was offline. The handled ledger below
         # prevents old completed rounds from being acted on again.
         self.history = JsonlTail(
             self.data / "round-history.jsonl", start_at_end=not resume)
-        self.candidates, self.positions, self.resolved_trades, self.handled = {}, {}, {}, set()
+        self.candidates, self.positions, self.shadow_positions = {}, {}, {}
+        self.resolved_trades, self.handled = {}, set()
         if resume and self.log_path.exists():
-            try:
-                prior_events = [json.loads(line) for line in
-                                self.log_path.read_text().splitlines()]
-            except (OSError, ValueError):
-                prior_events = []
+            prior_events = []
+            for path in (self.log_path, self.recovery_log_path):
+                try:
+                    prior_events.extend(json.loads(line) for line in
+                                        path.read_text().splitlines())
+                except (OSError, ValueError):
+                    continue
+            prior_events.sort(key=lambda row: int(row.get("recorded_ms") or 0))
             for event in prior_events:
                 if (event.get("event") == "run_started"
                         and event.get("recorded_ms") is not None):
@@ -164,6 +199,8 @@ class TradingEngine:
                 if event.get("event") == "trade_filled":
                     self.positions[slug] = {
                         "slug": slug, "side": event.get("side"),
+                        "entry_mode": event.get("entry_mode", "core"),
+                        "capital_pool": event.get("capital_pool", "core_trading"),
                         "fill": {"price": float(event.get("price") or 0),
                                  "shares": float(event.get("shares") or 0),
                                  "fee": float(event.get("fee") or 0),
@@ -173,6 +210,20 @@ class TradingEngine:
                 elif event.get("event") == "trade_resolved":
                     self.positions.pop(slug, None)
                     self.resolved_trades[slug] = event
+                    self.handled.add(slug)
+                elif event.get("event") == "recovered_opportunity":
+                    self.shadow_positions[slug] = {
+                        "slug": slug, "side": event.get("side"),
+                        "initial_rejection_reason": event.get(
+                            "initial_rejection_reason"),
+                        "fill": {"price": float(event.get("price") or 0),
+                                 "shares": float(event.get("shares") or 0),
+                                 "fee": float(event.get("fee") or 0),
+                                 "cost": float(event.get("trade_cost") or 0)},
+                    }
+                    self.handled.add(slug)
+                elif event.get("event") == "recovered_opportunity_resolved":
+                    self.shadow_positions.pop(slug, None)
                     self.handled.add(slug)
                 elif event.get("event") in {
                         "signal_rejected", "entry_expired", "entry_cancelled",
@@ -197,7 +248,13 @@ class TradingEngine:
         self.quote_tails = {}
         self.starting_bankroll = float(prior_status.get(
             "starting_bankroll", self.starting_bankroll))
-        self.bankroll = float(prior_status.get("available_bankroll", self.bankroll))
+        self.bankroll = float(prior_status.get(
+            "trading_capital", prior_status.get("available_bankroll", self.bankroll)))
+        self.protected_profit = float(prior_status.get(
+            "profit_trading_balance",
+            prior_status.get("protected_profit", self.protected_profit)))
+        self.safe_reserve = float(prior_status.get("safe_reserve", self.safe_reserve))
+        self.account_balance = prior_status.get("account_balance")
         self.trade_count = int(prior_status.get("trades", 0))
         self.wins = int(prior_status.get("wins", 0))
         self.losses = int(prior_status.get("losses", 0))
@@ -223,6 +280,17 @@ class TradingEngine:
                        self.movement_disagreement_allocation_fraction),
                    risk_rule=RISK_RULE,
                    risk_action="skip",
+                   minimum_strength=self.minimum_strength,
+                   maximum_entry_price=self.maximum_entry_price,
+                   protect_profits=self.protect_profits,
+                   recovered_signals_enabled=self.recovered_signals_enabled,
+                   recovered_allocation_fraction=self.recovered_allocation_fraction,
+                   recovered_model_threshold=self.recovered_model_threshold,
+                   recovered_minimum_strength=self.recovered_minimum_strength,
+                   recovered_minimum_gap_bps=self.recovered_minimum_gap_bps,
+                   recovery_confirmation_snapshots=self.recovery_confirmation_snapshots,
+                   recovery_confirmation_seconds=self.recovery_confirmation_ms / 1000,
+                   shadow_rejected_signals=self.shadow_rejected_signals,
                    session_name=self.session_name)
         self.write_status("POSITION_OPEN" if self.positions else "WAITING_FOR_SIGNAL",
                           resumed=bool(resume))
@@ -234,12 +302,31 @@ class TradingEngine:
             self.handled.add(slug)
             self.write("entry_cancelled", slug=slug, side=candidate["side"],
                        reason=reason,
+                       entry_mode=candidate.get("entry_mode", "core"),
+                       capital_pool=candidate.get("capital_pool", "core_trading"),
                        rejections=dict(candidate["rejections"]), bankroll=self.bankroll)
+
+    def _is_recovery_event(self, event, fields):
+        if event.startswith("recovered_") or event == "fund_transfer":
+            return True
+        if (fields.get("entry_mode") == "recovered"
+                or fields.get("capital_pool") == "profit_trading"):
+            return True
+        slug = fields.get("slug")
+        if not slug:
+            return False
+        related = (self.candidates.get(slug) or self.positions.get(slug)
+                   or self.shadow_positions.get(slug))
+        return bool(related and (
+            related.get("entry_mode") == "recovered"
+            or related.get("capital_pool") == "profit_trading"))
 
     def write(self, event, **fields):
         row = {"event": event, "recorded_ms": time.time_ns() // 1_000_000,
                "run_id": self.run_id, **fields}
-        self.log_file.write(json.dumps(row, separators=(",", ":")) + "\n")
+        output = (self.recovery_log_file if self._is_recovery_event(event, fields)
+                  else self.log_file)
+        output.write(json.dumps(row, separators=(",", ":")) + "\n")
 
     def write_status(self, status, **fields):
         payload = {
@@ -248,6 +335,21 @@ class TradingEngine:
             "status": status,
             "starting_bankroll": round(self.starting_bankroll, 6),
             "available_bankroll": round(self.bankroll, 6),
+            "trading_capital": round(self.bankroll, 6),
+            "protected_profit": round(self.protected_profit, 6),
+            "profit_trading_balance": round(self.protected_profit, 6),
+            "safe_reserve": round(self.safe_reserve, 6),
+            "recovered_signals_enabled": self.recovered_signals_enabled,
+            "recovered_allocation_fraction": self.recovered_allocation_fraction,
+            "recovered_model_threshold": self.recovered_model_threshold,
+            "recovered_minimum_strength": self.recovered_minimum_strength,
+            "recovered_minimum_gap_bps": self.recovered_minimum_gap_bps,
+            "recovered_candidates": sum(
+                candidate.get("entry_mode") == "recovered"
+                for candidate in self.candidates.values()),
+            "shadow_positions": len(self.shadow_positions),
+            "account_balance": (round(float(self.account_balance), 6)
+                                if self.account_balance is not None else None),
             "realized_profit": round(self.realized_profit, 6),
             "trades": self.trade_count,
             "wins": self.wins,
@@ -265,6 +367,76 @@ class TradingEngine:
         latest_temporary = self.folder / ".latest-status.json.tmp"
         latest_temporary.write_text(json.dumps(payload, indent=2) + "\n")
         latest_temporary.replace(latest)
+        funds = self.data / "real-trading" / "funds.json"
+        funds_temporary = funds.with_name(f".{funds.name}.tmp")
+        funds_temporary.write_text(json.dumps({
+            "updated_ms": payload["updated_ms"], "run_id": self.run_id,
+            "core_trading": payload["trading_capital"],
+            "profit_trading": payload["profit_trading_balance"],
+            "safe_reserve": payload["safe_reserve"],
+        }, indent=2) + "\n")
+        funds_temporary.replace(funds)
+
+    def funds_snapshot(self):
+        return {
+            "run_id": self.run_id,
+            "core_trading": round(self.bankroll, 6),
+            "profit_trading": round(self.protected_profit, 6),
+            "safe_reserve": round(self.safe_reserve, 6),
+            "account_balance": (round(float(self.account_balance), 6)
+                                if self.account_balance is not None else None),
+            "recovered_signals_enabled": self.recovered_signals_enabled,
+            "recovered_allocation_fraction": self.recovered_allocation_fraction,
+            "recovered_model_threshold": self.recovered_model_threshold,
+            "recovered_minimum_strength": self.recovered_minimum_strength,
+            "recovered_minimum_gap_bps": self.recovered_minimum_gap_bps,
+            "recovered_candidates": [
+                {"slug": candidate["slug"], "side": candidate["side"],
+                 "initial_rejection_reason": candidate.get(
+                     "initial_rejection_reason"),
+                 "chance": candidate.get("chance"),
+                 "strength": candidate.get("strength"),
+                 "last_validation_reason": candidate.get(
+                     "last_validation_reason"),
+                 "deadline_ms": candidate.get("deadline_ms")}
+                for candidate in self.candidates.values()
+                if candidate.get("entry_mode") == "recovered"
+            ],
+        }
+
+    def set_recovered_signals_enabled(self, enabled):
+        self.recovered_signals_enabled = bool(enabled)
+        self.write("recovered_execution_updated",
+                   enabled=self.recovered_signals_enabled,
+                   profit_trading_balance=self.protected_profit)
+        self.write_status("MONITORING_ENTRY" if self.candidates
+                          else "WAITING_FOR_SIGNAL")
+        return self.funds_snapshot()
+
+    def transfer_funds(self, source, destination, amount):
+        attributes = {
+            "core_trading": "bankroll",
+            "profit_trading": "protected_profit",
+            "safe_reserve": "safe_reserve",
+        }
+        if source not in attributes or destination not in attributes or source == destination:
+            raise ValueError("invalid_fund_transfer")
+        amount = round(float(amount), 6)
+        if not math.isfinite(amount) or amount <= 0:
+            raise ValueError("invalid_fund_transfer_amount")
+        source_attribute = attributes[source]
+        destination_attribute = attributes[destination]
+        available = float(getattr(self, source_attribute))
+        if amount > available + 1e-9:
+            raise ValueError("fund_transfer_exceeds_balance")
+        setattr(self, source_attribute, max(0.0, available - amount))
+        setattr(self, destination_attribute,
+                float(getattr(self, destination_attribute)) + amount)
+        self.write("fund_transfer", source=source, destination=destination,
+                   amount=amount, balances=self.funds_snapshot())
+        self.write_status("MONITORING_ENTRY" if self.candidates
+                          else "WAITING_FOR_SIGNAL")
+        return self.funds_snapshot()
 
     def _round_tail(self, start):
         if start in self.quote_tails:
@@ -359,7 +531,8 @@ class TradingEngine:
 
     def add_signal(self, row):
         slug = row.get("slug")
-        if slug in self.handled or slug in self.candidates or slug in self.positions:
+        if (slug in self.handled or slug in self.candidates
+                or slug in self.positions or slug in self.shadow_positions):
             return
         try:
             decision_ms = int(row["decision_ms"])
@@ -378,12 +551,7 @@ class TradingEngine:
                 and 0 <= p_up <= 1 and 0 <= p_down <= 1):
             return
         side, chance = ("Up", p_up) if p_up >= p_down else ("Down", p_down)
-        if chance + 1e-12 < self.model_threshold:
-            self.write("signal_rejected", slug=slug, side=side,
-                       model_probability=chance,
-                       reason="confidence_below_threshold",
-                       threshold=self.model_threshold, bankroll=self.bankroll)
-            return
+        strength = abs(float(probability.get("z_score", 0)))
         agreement = row.get("agreement") or {}
         warnings = set(row.get("warnings") or [])
         settlement = (row.get("components") or {}).get("settlement") or {}
@@ -397,47 +565,49 @@ class TradingEngine:
         combined_risk = thin_gap and movement_disagreement
         regime_risk = thin_gap and ((row.get("components") or {}).get(
             "movement") or {}).get("regime") == "choppy_up"
-        risk_blocked = bool(row.get("risk_blocked", combined_risk or regime_risk))
+        risk_blocked = ((thin_gap or movement_disagreement)
+                        if self.strict_risk_rules else
+                        bool(row.get("risk_blocked", combined_risk or regime_risk)))
         market_side = agreement.get("market")
-        if market_side is not None and market_side != side:
-            self.handled.add(slug)
-            self.write("signal_rejected", slug=slug, side=side,
-                       model_probability=chance,
-                       reason="market_disagreement",
-                       market_direction=market_side, warnings=sorted(warnings),
-                       bankroll=self.bankroll)
-            return
-        if risk_blocked:
-            self.handled.add(slug)
-            risk_reason = row.get("reason") or "combined_risk"
-            self.write("signal_rejected", slug=slug, side=side,
-                       model_probability=chance,
-                       reason="combined_risk", signal_reason=risk_reason,
-                       thin_gap=thin_gap,
-                       movement_disagreement=movement_disagreement,
-                       warnings=sorted(warnings),
-                       regime=((row.get("components") or {}).get("movement") or {}).get("regime"),
-                       bankroll=self.bankroll)
-            return
         risk_multiplier = (self.thin_gap_allocation_fraction if thin_gap else
                            self.movement_disagreement_allocation_fraction
                            if movement_disagreement else 1.0)
-        if risk_multiplier <= 0:
-            self.handled.add(slug)
-            self.write("signal_rejected", slug=slug, side=side,
-                       reason="session_risk_rule", thin_gap=thin_gap,
-                       movement_disagreement=movement_disagreement,
-                       bankroll=self.bankroll)
-            return
         fee_rate = row.get("fee_rate")
         if fee_rate is None or not 0 <= fee_rate <= 1:
             self.handled.add(slug)
             self.write("signal_rejected", slug=slug, reason="invalid_fee_rate")
             return
+        initial_rejection_reason = None
+        if chance + 1e-12 < self.model_threshold:
+            initial_rejection_reason = "confidence_below_threshold"
+        elif self.minimum_strength > 0 and strength <= self.minimum_strength:
+            initial_rejection_reason = "strength_below_threshold"
+        elif market_side is not None and market_side != side:
+            initial_rejection_reason = "market_disagreement"
+        elif risk_blocked:
+            initial_rejection_reason = (
+                "thin_gap" if thin_gap else "movement_disagreement")
+        elif risk_multiplier <= 0:
+            initial_rejection_reason = "session_risk_rule"
+        elif row.get("direction") != side:
+            initial_rejection_reason = row.get("reason") or "signal_rejected"
+
+        if initial_rejection_reason and not self.shadow_rejected_signals:
+            self.handled.add(slug)
+            self.write("signal_rejected", slug=slug, side=side,
+                       model_probability=chance, strength=strength,
+                       reason=initial_rejection_reason,
+                       thin_gap=thin_gap,
+                       movement_disagreement=movement_disagreement,
+                       warnings=sorted(warnings), bankroll=self.bankroll)
+            return
+
+        entry_mode = "recovered" if initial_rejection_reason else "core"
         market_end_ms = (int(row["start"]) + 300) * 1000
         candidate = {
             "slug": slug, "start": int(row["start"]), "side": side,
             "chance": float(chance), "fee_rate": float(fee_rate),
+            "strength": strength,
             "signal_direction": row.get("direction"),
             "signal_reason": row.get("reason"),
             "decision_ms": decision_ms,
@@ -445,33 +615,54 @@ class TradingEngine:
             "market_end_ms": market_end_ms,
             "deadline_ms": market_end_ms - self.stop_entry_at_remaining_ms,
             "signal_ask": (row.get("quotes") or {}).get(side, {}).get("ask"),
-            "maximum_value_price": maximum_value_price(chance, fee_rate, self.minimum_edge),
+            "maximum_value_price": min(
+                float(self.maximum_entry_price or 1),
+                maximum_value_price(chance, fee_rate, self.minimum_edge)),
             "thin_gap": thin_gap,
             "movement_disagreement": movement_disagreement,
             "warnings": sorted(warnings),
             "regime": ((row.get("components") or {}).get("movement") or {}).get("regime"),
             "spot_gap_bps": settlement.get("spot_gap_bps"),
             "twap_gap_bps": settlement.get("twap_gap_bps"),
-            "maximum_adverse_price_move": MAXIMUM_ADVERSE_PRICE_MOVE,
             "minimum_entry_price": MINIMUM_ENTRY_PRICE,
-            "risk_allocation_multiplier": risk_multiplier,
+            "risk_allocation_multiplier": 1.0 if entry_mode == "recovered"
+            else risk_multiplier,
+            "entry_mode": entry_mode,
+            "capital_pool": ("profit_trading" if entry_mode == "recovered"
+                             else "core_trading"),
+            "initial_rejection_reason": initial_rejection_reason,
+            "recovery_pass_count": 0,
+            "recovery_pass_started_ms": None,
+            "recovery_confirmation_side": None,
             "rejections": Counter(), "best_ask": None,
         }
         self.candidates[slug] = candidate
-        self.write("signal_seen", **{key: value for key, value in candidate.items()
-                                     if key != "rejections"},
+        event = "recovered_signal_watching" if initial_rejection_reason else "signal_seen"
+        planned = (self.protected_profit * self.recovered_allocation_fraction
+                   if initial_rejection_reason else self._trade_budget(risk_multiplier))
+        self.write(event, **{key: value for key, value in candidate.items()
+                             if key != "rejections"},
+                   execution_enabled=(self.recovered_signals_enabled
+                                      if initial_rejection_reason else True),
                    bankroll=self.bankroll,
-                   planned_allocation=self._trade_budget(risk_multiplier))
+                   profit_trading_balance=self.protected_profit,
+                   planned_allocation=planned)
         self.write_status("MONITORING_ENTRY", slug=slug, side=side,
+                          entry_mode=entry_mode,
+                          initial_rejection_reason=initial_rejection_reason,
                           model_probability=round(chance, 6),
                           stop_entry_at_remaining_seconds=self.stop_entry_at_remaining_ms / 1000,
                           maximum_value_price=round(candidate["maximum_value_price"], 6))
         remaining = self.stop_entry_at_remaining_ms / 1000
-        print(f"Signal candidate {slug}: {side} {chance:.1%}; monitoring now until {remaining:g}s "
+        print(f"{entry_mode.title()} candidate {slug}: {side} {chance:.1%}; "
+              f"monitoring now until {remaining:g}s "
               f"remaining, up to ${candidate['maximum_value_price']:.3f}", flush=True)
 
     def consider_quotes(self, candidate, record):
         raise NotImplementedError
+
+    def observe_round_record(self, candidate, record):
+        """Allow an executor to maintain fresh state from the active-round log."""
 
     def expire_candidates(self, now_ms):
         for slug, candidate in list(self.candidates.items()):
@@ -481,6 +672,10 @@ class TradingEngine:
             self._close_round_tail(candidate["start"])
             self.handled.add(slug)
             self.write("entry_expired", slug=slug, side=candidate["side"],
+                       entry_mode=candidate.get("entry_mode", "core"),
+                       capital_pool=candidate.get("capital_pool", "core_trading"),
+                       initial_rejection_reason=candidate.get(
+                           "initial_rejection_reason"),
                        signal_ask=candidate["signal_ask"], best_ask=candidate["best_ask"],
                        maximum_value_price=candidate["maximum_value_price"],
                        rejections=dict(candidate["rejections"]), bankroll=self.bankroll)
@@ -490,6 +685,20 @@ class TradingEngine:
 
     def resolve(self, row):
         slug = row.get("slug")
+        shadow = self.shadow_positions.pop(slug, None)
+        actual = row.get("actual_result")
+        if shadow is not None and actual in ("Up", "Down"):
+            result = settle_fill(shadow["fill"], shadow["side"], actual)
+            self.write(
+                "recovered_opportunity_resolved", slug=slug,
+                side=shadow["side"], actual=actual, won=result["won"],
+                hypothetical_profit=result["profit"],
+                price=shadow["fill"]["price"],
+                shares=shadow["fill"]["shares"],
+                trade_cost=shadow["fill"]["cost"],
+                initial_rejection_reason=shadow.get(
+                    "initial_rejection_reason"),
+                resolution_source=row.get("resolution_source", "collector"))
         position = self.positions.pop(slug, None)
         if position is None:
             prior = self.resolved_trades.get(slug)
@@ -504,12 +713,35 @@ class TradingEngine:
                     "cost": float(prior.get("trade_cost") or 0),
                 }
                 corrected = settle_fill(fill, predicted, actual)
+                capital_pool = prior.get("capital_pool", "core_trading")
                 old_profit = float(prior.get("profit") or 0)
                 old_won = prior.get("won") is True
+                if capital_pool == "profit_trading":
+                    old_return = float(prior.get("payout") or 0)
+                    old_reserved = 0.0
+                    new_return = corrected["payout"]
+                    new_reserved = 0.0
+                else:
+                    old_return = float(prior.get("principal_return",
+                        min(float(prior.get("payout") or 0), fill["cost"])
+                        if self.protect_profits else float(prior.get("payout") or 0)))
+                    old_reserved = float(prior.get("protected_profit_delta",
+                        max(old_profit, 0) if self.protect_profits else 0))
+                    new_return = (min(corrected["payout"], fill["cost"])
+                                  if self.protect_profits else corrected["payout"])
+                    new_reserved = (max(corrected["profit"], 0)
+                                    if self.protect_profits else 0)
                 self.realized_profit += corrected["profit"] - old_profit
                 self.wins += int(corrected["won"]) - int(old_won)
                 self.losses += int(not corrected["won"]) - int(not old_won)
-                self.bankroll = self.settlement_available_bankroll(self.bankroll)
+                if capital_pool == "profit_trading":
+                    self.protected_profit += new_return - old_return
+                else:
+                    self.bankroll += new_return - old_return
+                    self.protected_profit += new_reserved - old_reserved
+                refreshed = self.settlement_available_bankroll(self.bankroll)
+                if not self.protect_profits:
+                    self.bankroll = refreshed
                 fields = {
                     "slug": slug, "predicted": predicted, "actual": actual,
                     "won": corrected["won"],
@@ -517,6 +749,11 @@ class TradingEngine:
                     "shares": fill["shares"], "fee": prior.get("fee", 0),
                     "trade_cost": fill["cost"], "payout": corrected["payout"],
                     "profit": corrected["profit"], "bankroll": self.bankroll,
+                    "principal_return": new_return,
+                    "protected_profit_delta": new_reserved,
+                    "protected_profit": self.protected_profit,
+                    "entry_mode": prior.get("entry_mode", "core"),
+                    "capital_pool": capital_pool,
                     "resolution_source": source,
                     "opening_price": row.get("opening_price"),
                     "final_price": row.get("final_price"),
@@ -538,6 +775,10 @@ class TradingEngine:
                 self.handled.add(slug)
                 self.write("entry_expired", slug=slug, side=candidate["side"],
                            reason="market_resolved_without_fill",
+                           entry_mode=candidate.get("entry_mode", "core"),
+                           capital_pool=candidate.get("capital_pool", "core_trading"),
+                           initial_rejection_reason=candidate.get(
+                               "initial_rejection_reason"),
                            signal_ask=candidate["signal_ask"], best_ask=candidate["best_ask"],
                            maximum_value_price=candidate["maximum_value_price"],
                            rejections=dict(candidate["rejections"]), bankroll=self.bankroll)
@@ -548,8 +789,21 @@ class TradingEngine:
         if actual not in ("Up", "Down"):
             return
         result = settle_fill(position["fill"], position["side"], actual)
-        self.bankroll += result["payout"]
-        self.bankroll = self.settlement_available_bankroll(self.bankroll)
+        capital_pool = position.get("capital_pool", "core_trading")
+        if capital_pool == "profit_trading":
+            principal_return = result["payout"]
+            protected_profit_delta = result["profit"]
+            self.protected_profit += result["payout"]
+        else:
+            principal_return = (min(result["payout"], position["fill"]["cost"])
+                                if self.protect_profits else result["payout"])
+            protected_profit_delta = (max(result["profit"], 0)
+                                      if self.protect_profits else 0.0)
+            self.bankroll += principal_return
+            self.protected_profit += protected_profit_delta
+        refreshed = self.settlement_available_bankroll(self.bankroll)
+        if not self.protect_profits:
+            self.bankroll = refreshed
         self.realized_profit += result["profit"]
         self.wins += int(result["won"])
         self.losses += int(not result["won"])
@@ -559,6 +813,11 @@ class TradingEngine:
                    shares=position["fill"]["shares"], fee=position["fill"]["fee"],
                    trade_cost=position["fill"]["cost"], payout=result["payout"],
                    profit=result["profit"], bankroll=self.bankroll,
+                   principal_return=principal_return,
+                   protected_profit_delta=protected_profit_delta,
+                   protected_profit=self.protected_profit,
+                   entry_mode=position.get("entry_mode", "core"),
+                   capital_pool=capital_pool,
                    resolution_source=row.get("resolution_source", "collector"),
                    opening_price=row.get("opening_price"), final_price=row.get("final_price"))
         self.resolved_trades[slug] = {
@@ -567,11 +826,16 @@ class TradingEngine:
             "shares": position["fill"]["shares"], "fee": position["fill"]["fee"],
             "trade_cost": position["fill"]["cost"], "payout": result["payout"],
             "profit": result["profit"],
+            "principal_return": principal_return,
+            "protected_profit_delta": protected_profit_delta,
+            "entry_mode": position.get("entry_mode", "core"),
+            "capital_pool": capital_pool,
             "resolution_source": row.get("resolution_source", "collector"),
         }
         print(f"REAL {'WIN' if result['won'] else 'LOSS'} {slug}: "
               f"profit ${result['profit']:.2f}; bankroll ${self.bankroll:.2f}", flush=True)
-        if self.bankroll <= 1e-9 and not self.positions:
+        if (self.bankroll <= 1e-9 and self.protected_profit <= 1e-9
+                and not self.positions):
             self.bankroll = 0.0
             self.running = False
             self.write("game_over", reason="bankroll_depleted", bankroll=0.0,
@@ -611,6 +875,7 @@ class TradingEngine:
                 candidate["rejections"]["round_log_unavailable"] += 1
                 continue
             for record in tail.read():
+                self.observe_round_record(candidate, record)
                 if record.get("kind") == "quotes" and record.get("slug") == candidate["slug"]:
                     self.consider_quotes(candidate, record)
                     if candidate["slug"] not in self.candidates:
@@ -625,10 +890,12 @@ class TradingEngine:
         for tail in self.quote_tails.values():
             tail.close()
         self.log_file.close()
+        self.recovery_log_file.close()
 
     def run(self):
         label = "Real"
         print(f"{label} trader log: {self.log_path}", flush=True)
+        print(f"Profit signal log: {self.recovery_log_path}", flush=True)
         print(f"{label} trader status: {self.status_path}", flush=True)
         print(f"Starting real bankroll: ${self.bankroll:.2f}", flush=True)
         interrupted = False

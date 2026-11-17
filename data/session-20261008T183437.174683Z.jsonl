@@ -1,0 +1,19 @@
+{"kind":"price_connected","received_ms":1791484479633,"source":"polybolt"}
+{"kind":"error","received_ms":1791485004887,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1791485146198,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1791485455361,"message":"No messages or PONG for 25 seconds"}
+{"kind":"price_error","received_ms":1791485463536,"source":"polybolt","error":"TimeoutError"}
+{"kind":"error","received_ms":1791485466450,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}
+{"kind":"price_disconnected","received_ms":1791485466559,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1791485481550,"source":"polybolt"}
+{"kind":"error","received_ms":1791485512554,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1791485626082,"message":"No messages or PONG for 25 seconds"}
+{"kind":"error","received_ms":1791485720898,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1791485882614,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1791485929890,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1791486616375,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1791487932730,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}
+{"kind":"price_error","received_ms":1791487938803,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1791487941856,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1791487944370,"source":"polybolt"}
+{"kind":"error","received_ms":1791488203602,"message":"WebSocket closed"}

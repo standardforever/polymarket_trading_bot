@@ -1,0 +1,6 @@
+{"kind":"round_reference","received_ms":1791525697128,"start":1791524700,"supported":true,"price_to_beat":null,"final_price":null,"winner":null}
+{"kind":"round_reference","received_ms":1791525713102,"start":1791524700,"supported":true,"price_to_beat":null,"final_price":null,"winner":null}
+{"kind":"round_reference","received_ms":1791525728988,"start":1791524700,"supported":true,"price_to_beat":null,"final_price":null,"winner":"Down"}
+{"kind":"settlement_alignment","received_ms":1791525728991,"start":1791524700,"reference":{"supported":true,"price_to_beat":null,"final_price":null,"winner":"Down"},"opening":{"point":null,"difference":null},"closing":{"point":null,"difference":null},"endpoint_match":false}
+{"kind":"round_reference","received_ms":1791525744910,"start":1791524700,"supported":true,"price_to_beat":null,"final_price":null,"winner":"Down"}
+{"kind":"settlement_alignment","received_ms":1791525744918,"start":1791524700,"reference":{"supported":true,"price_to_beat":null,"final_price":null,"winner":"Down"},"opening":{"point":null,"difference":null},"closing":{"point":null,"difference":null},"endpoint_match":false}

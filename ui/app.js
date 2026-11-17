@@ -1,12 +1,13 @@
 const API = (window.BOT_API_URL || "http://127.0.0.1:8000").replace(/\/$/, "");
 const WS = API.replace(/^http/, "ws");
 const $ = (id) => document.getElementById(id);
-const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, account: null, orderPreview: null,
+const state = { dashboard: null, live: null, liveQuotes: null, liveReference: null, realtimeBtc: [], chart: { btc: [], market: [] }, health: null, rounds: [], trades: [], sessions: [], activeSessionSummary: null, selectedSessionId: null, sessionDetail: null, account: null, orderPreview: null, funds: null,
   pages: {
     history: { offset: 0, limit: 25, total: 0 },
     sessions: { offset: 0, limit: 8, total: 0 },
     trades: { offset: 0, limit: 25, total: 0 },
     events: { offset: 0, limit: 25, total: 0 },
+    recovered: { offset: 0, limit: 20, total: 0 },
   },
 };
 const calculator = { side: "Up", amount: 50, presets: [1, 50, 100] };
@@ -104,7 +105,7 @@ function renderLive() {
   $("countdown").dataset.remaining = prediction.remaining_seconds ?? "";
   $("countdown").dataset.updated = prediction.updated_ms ?? Date.now();
   $("countdown").textContent = fmt.time(prediction.remaining_seconds);
-  $("bankroll").textContent = trading ? fmt.usd(trading.available_bankroll) : "Not running";
+  $("bankroll").textContent = trading ? fmt.usd(trading.trading_capital ?? trading.available_bankroll) : "Not running";
   $("directionArrow").textContent = direction === "Up" ? "↗" : direction === "Down" ? "↘" : isSkip ? "×" : "·";
   $("upProbability").textContent = fmt.percent(pUp);
   $("downProbability").textContent = fmt.percent(pDown);
@@ -186,11 +187,11 @@ function humanReason(reason, fallback) {
   if (!reason) return fallback || "Collecting live inputs for the prediction window.";
   const explanations = {
     analytic_unvalidated_signal: "The probability, market direction, liquidity, and profit edge passed.",
-    analytic_probability_below_90pct: "Confidence is below the configured signal threshold.",
-    analytic_combined_risk: "BTC is close to the opening price while movement disagrees or the recent path is choppy and upward.",
-    combined_risk: "The close-to-line risk guard blocked this entry.",
+    analytic_probability_below_98pct: "Confidence is below the fixed 98% signal threshold.",
+    analytic_strength_below_threshold: "Signal strength is not above 2.5.",
+    analytic_thin_gap: "BTC is too close to the opening line.",
+    analytic_movement_disagreement: "Recent BTC movement disagrees with the predicted side.",
     confidence_below_threshold: "The forecast did not reach the session confidence threshold.",
-    adverse_price_move_requires_confirmation: "The contract price moved more than 10¢ below the original signal before a fill was available.",
     price_below_entry_floor: "The contract is not above the hard 80¢ entry floor.",
     "analytic_disagreement:market": "The settlement estimate and Polymarket direction disagree.",
     analytic_edge_below_threshold: "The available price is too expensive for the required profit margin.",
@@ -570,10 +571,10 @@ function isTerminalSession(session) {
 
 function riskRuleText() {
   return {
-    title: "Combined-risk protection",
-    copy: "A conservative spot-or-TWAP thin gap combined with movement disagreement or choppy-up is skipped. Entry waits at or below 80¢ or after a fall of more than 10¢ from the signal price, and can resume if the price recovers before cutoff.",
-    budget: "Combined risk: SKIP · entry floor: 80¢ · adverse move: 10¢ max",
-    session: "combined close-to-line risk skipped; 80¢ floor; 10¢ adverse-move guard",
+    title: "Fixed high-confidence protection",
+    copy: "The bot requires 98% confidence, strength above 2.5, market agreement, no thin gap, no movement disagreement, and a fresh executable price above 80¢ and at most 97¢.",
+    budget: "80% of trading capital · profits protected",
+    session: "strength >2.5; thin gaps and movement disagreement skipped; 80–97¢ entry",
   };
 }
 
@@ -583,11 +584,8 @@ function activeSession() {
 }
 
 function sessionAvailable(session) {
-  const active = activeSession();
-  const liveCash = Number(state.account?.balance_usdc);
-  if (session?.session_id === active?.session_id
-      && state.account?.connected && Number.isFinite(liveCash)) return liveCash;
-  return session?.status_detail?.available_bankroll;
+  return session?.status_detail?.trading_capital
+    ?? session?.status_detail?.available_bankroll;
 }
 
 function liveTradeState(trade, session) {
@@ -612,21 +610,23 @@ function renderTradingControl() {
   const active = activeSession();
   const stopping = active?.status === "STOPPING";
   const accepting = Boolean(active?.status_detail?.accepting_entries) && !stopping;
-  $("autoTradingToggle").checked = accepting;
-  $("autoTradingToggle").disabled = !runtime || stopping;
+  const button = $("autoTradingButton");
+  button.textContent = active ? (stopping ? "Stopping…" : "Stop bot") : "Start bot";
+  button.disabled = !runtime || stopping;
+  button.classList.toggle("danger-action", Boolean(active && !stopping));
   $("autoTradingStatus").textContent = !runtime ? "UNAVAILABLE" : active ? active.status.replaceAll("_", " ") : "READY";
   $("autoTradingStatus").className = `pill ${accepting ? "signal" : active ? "warning" : "muted"}`;
   $("autoTradingCopy").textContent = !runtime
     ? "Trading sessions require the collector runtime."
     : active
-      ? `REAL · ${active.name} · ${fmt.usd(sessionAvailable(active))} available cash · entries stop at ${fmt.num(active.configuration.entry_cutoff_seconds, 0)} seconds.`
-      : "Create a real-money session, set its balance-based limits, then let the bot monitor entries.";
+      ? `REAL · ${fmt.usd(sessionAvailable(active))} trading capital · ${fmt.usd(active.status_detail?.protected_profit || 0)} protected profit.`
+      : "One click starts the fixed strategy. It uses 80% of remaining capital and never reuses session profit.";
 }
 
 function renderSessionList() {
   state.sessions.sort((a, b) => Number(b.created_ms || 0) - Number(a.created_ms || 0));
   $("sessionsEmpty").classList.toggle("hidden", state.sessions.length > 0);
-  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>CASH<b>${fmt.usd(sessionAvailable(session))}</b></span><span>TRADES<b>${session.trade_count}</b></span><span>P&amp;L<b class="${session.realized_profit >= 0 ? "positive" : "negative"}">${fmt.usd(session.realized_profit)}</b></span></div></button>`).join("");
+  $("sessionList").innerHTML = state.sessions.map(session => `<button class="session-item ${session.session_id === state.selectedSessionId ? "active" : ""}" data-session-id="${session.session_id}"><div class="session-item-head"><strong>${escapeHtml(session.name)}</strong>${badge(session.status)}</div><small>${new Date(session.created_ms).toLocaleString()}</small><div class="session-item-stats"><span>CAPITAL<b>${fmt.usd(sessionAvailable(session))}</b></span><span>SAFE<b>${fmt.usd(session.status_detail?.protected_profit || 0)}</b></span><span>TRADES<b>${session.trade_count}</b></span></div></button>`).join("");
   document.querySelectorAll(".session-item").forEach(button => button.addEventListener("click", () => selectSession(button.dataset.sessionId)));
   renderTradingControl();
 }
@@ -639,20 +639,12 @@ function renderSessionDetail() {
     $("sessionLedgerTitle").textContent = "Select a session";
     $("sessionRules").textContent = "";
     $("tradeMetrics").innerHTML = "";
-    $("editSessionButton").classList.add("hidden");
   } else {
     const config = session.configuration;
     $("sessionLedgerTitle").textContent = session.name;
-    const stopRules = [config.max_trades ? `${config.max_trades} trades` : "manual stop",
-      config.target_profit_usd ? `${fmt.usd(config.target_profit_usd)} profit target` : null,
-      config.max_loss_usd ? `${fmt.usd(config.max_loss_usd)} loss limit` : null].filter(Boolean);
-    const allocationRule = session.legacy ? "legacy 80% / below-$20 rule" : `${fmt.percent(config.allocation_fraction, 0)} of balance per trade`;
-    const riskRules = session.legacy ? "legacy risk sizing" : `thin gap ${fmt.percent(config.thin_gap_allocation_fraction ?? .25, 0)} · movement warning ${fmt.percent(config.movement_disagreement_allocation_fraction ?? .5, 0)} · ${riskRuleText().session}`;
-    $("sessionRules").textContent = `REAL · ${fmt.percent(config.model_threshold)} confidence · ${fmt.percent(config.minimum_edge)} edge · ${allocationRule} · ${riskRules} · stop entries at ${fmt.num(config.entry_cutoff_seconds, 0)}s · ${stopRules.join(" · ")}`;
-    const values = [["Starting", fmt.usd(config.starting_bankroll)], ["Available cash", fmt.usd(sessionAvailable(session))], ["Trades", session.trade_count], ["Wins / losses", `${session.wins} / ${session.losses}`], ["Realized P&L", fmt.usd(session.realized_profit)]];
+    $("sessionRules").textContent = `REAL · 98% confidence · strength >2.5 · 80% per entry · ${riskRuleText().session} · fresh validation until 30s · manual stop`;
+    const values = [["Starting", fmt.usd(config.starting_bankroll)], ["Trading capital", fmt.usd(sessionAvailable(session))], ["Protected profit", fmt.usd(session.status_detail?.protected_profit || 0)], ["Account cash", fmt.usd(session.status_detail?.account_balance)], ["Trades", session.trade_count], ["Wins / losses", `${session.wins} / ${session.losses}`], ["Realized P&L", fmt.usd(session.realized_profit)]];
     $("tradeMetrics").innerHTML = values.map(([label,value]) => `<div class="metric"><span>${label}</span><b>${value}</b></div>`).join("");
-    const editable = activeSession()?.session_id === session.session_id && !isTerminalSession(session);
-    $("editSessionButton").classList.toggle("hidden", !editable);
   }
   $("tradesBody").innerHTML = trades.map(row => `<tr><td>${row.slug.replace("btc-updown-5m-", "#")}</td><td class="${sideClass(row.side)}"><b>${row.side}</b></td><td>${fmt.cents(row.entry_price)}</td><td class="mono">${fmt.num(row.shares, 3)}</td><td>${fmt.usd(row.cost)}</td><td>${badge(row.status)}</td><td class="${row.profit >= 0 ? "positive" : "negative"}">${fmt.usd(row.profit)}</td></tr>`).join("");
   $("tradesEmpty").classList.toggle("hidden", trades.length > 0);
@@ -682,7 +674,104 @@ function sessionEventDescription(event) {
   if (event.event === "order_rejected") return `${round} · Polymarket rejected the FOK order`;
   if (event.event === "configuration_updated") return `Runtime rules updated · next budget ${fmt.usd(event.planned_allocation)}`;
   if (event.event === "signal_rejected") return `${round || "Signal"} · ${String(event.reason || "risk rule").replaceAll("_", " ")}`;
+  if (event.event === "recovered_signal_watching") return `${round} · initially blocked by ${String(event.initial_rejection_reason || "a rule").replaceAll("_", " ")} · shadow monitoring started`;
+  if (event.event === "recovered_signal_passed") return `${round} · ${event.side} passed ≥90% probability, >2.5 strength and ≥5 bps gap after ${event.confirmation_snapshots || 0} confirmed snapshots`;
+  if (event.event === "recovered_opportunity") return `${round} · fillable ${event.side} at ${fmt.cents(event.price)} · ${event.execution_reason === "recovered_execution_disabled" ? "logged without trading" : String(event.execution_reason || "opportunity logged").replaceAll("_", " ")}`;
+  if (event.event === "recovered_opportunity_resolved") return `${round} · hypothetical ${event.won ? "WIN" : "LOSS"} · ${fmt.usd(event.hypothetical_profit)}`;
+  if (event.event === "recovered_execution_updated") return `Recovered-signal execution ${event.enabled ? "enabled" : "disabled"}`;
+  if (event.event === "fund_transfer") return `${fmt.usd(event.amount)} moved from ${String(event.source).replaceAll("_", " ")} to ${String(event.destination).replaceAll("_", " ")}`;
   return round || String(event.reason || "Session state updated").replaceAll("_", " ");
+}
+
+function renderRecoveredSignals() {
+  const funds = state.funds || {};
+  const active = Boolean(funds.active && funds.run_id);
+  const enabled = Boolean(funds.recovered_signals_enabled);
+  $("safeReserveBalance").textContent = fmt.usd(funds.safe_reserve);
+  $("coreTradingBalance").textContent = fmt.usd(funds.core_trading);
+  $("profitTradingBalance").textContent = fmt.usd(funds.profit_trading);
+  $("profitLiquidBalance").textContent = fmt.usd(funds.account_balance);
+  $("recoveredExecutionStatus").textContent = !active ? "BOT OFF" : enabled ? "ACTIVE" : "ANALYSIS ONLY";
+  $("recoveredExecutionStatus").className = `pill ${enabled && active ? "signal" : active ? "warning" : "muted"}`;
+  $("recoveredExecutionButton").textContent = enabled ? "Disable trading" : "Enable trading";
+  $("recoveredExecutionButton").disabled = !active;
+  $("recoveredExecutionButton").classList.toggle("danger-action", enabled);
+  $("recoveredExecutionCopy").textContent = enabled
+    ? "Execution is active. The fresh side must reach ≥90% probability, >2.5 strength and ≥5 bps gap; each entry uses 50% of the profit wallet."
+    : "Analysis stays active using ≥90% probability, >2.5 strength and ≥5 bps gap without spending money.";
+
+  const stats = funds.statistics || {};
+  const values = [
+    ["Watched", stats.watched || 0],
+    ["Fillable recoveries", stats.opportunities || 0],
+    ["Hypothetical W / L", `${stats.hypothetical_wins || 0} / ${stats.hypothetical_losses || 0}`],
+    ["Hypothetical P&L", fmt.usd(stats.hypothetical_profit || 0)],
+    ["Real recovered trades", stats.real_trades || 0],
+    ["Real recovered P&L", fmt.usd(stats.realized_profit || 0)],
+  ];
+  $("recoveredMetrics").innerHTML = values.map(([label, value]) => `<div class="metric"><span>${label}</span><b>${value}</b></div>`).join("");
+
+  const candidates = funds.recovered_candidates || [];
+  $("recoveredCandidateCount").textContent = `${candidates.length} ACTIVE`;
+  $("recoveredCandidates").innerHTML = candidates.length ? candidates.map(candidate => `<div class="recovered-candidate"><div><strong>${escapeHtml(candidate.slug.replace("btc-updown-5m-", "#"))} · <span class="${sideClass(candidate.side)}">${escapeHtml(candidate.side)}</span></strong><p>Initial block: ${escapeHtml(String(candidate.initial_rejection_reason || "unknown").replaceAll("_", " "))}</p></div><div><b>${fmt.percent(candidate.chance)}</b><small>strength ${fmt.num(candidate.strength, 2)}</small></div><em>${escapeHtml(String(candidate.last_validation_reason || "collecting fresh checks").replaceAll("_", " "))}</em></div>`).join("") : `<div class="empty-state">No rejected signal is currently being monitored.</div>`;
+
+  const activity = funds.activity || [];
+  const activityPage = funds.activity_page || {
+    total: activity.length, offset: 0, limit: state.pages.recovered.limit,
+  };
+  Object.assign(state.pages.recovered, activityPage);
+  renderPagination("recovered");
+  $("recoveredActivity").innerHTML = activity.length ? activity.map(event => `<div class="session-event"><i class="${event.event || "event"}"></i><div><strong>${escapeHtml(String(event.event || "event").replaceAll("_", " ").toUpperCase())}</strong><p>${escapeHtml(sessionEventDescription(event))}</p></div><time>${event.recorded_ms ? new Date(event.recorded_ms).toLocaleTimeString() : "—"}</time></div>`).join("") : `<div class="empty-state">No recovered-signal activity yet.</div>`;
+}
+
+async function loadRecoveredSignals() {
+  const page = state.pages.recovered;
+  const query = new URLSearchParams({
+    activity_limit: page.limit,
+    activity_offset: page.offset,
+  });
+  state.funds = await request(`/api/v1/trading/funds?${query}`);
+  const returnedPage = state.funds.activity_page;
+  if (returnedPage && page.offset >= returnedPage.total && returnedPage.total) {
+    page.offset = Math.floor((returnedPage.total - 1) / page.limit) * page.limit;
+    return loadRecoveredSignals();
+  }
+  renderRecoveredSignals();
+}
+
+async function toggleRecoveredExecution() {
+  const funds = state.funds || {};
+  if (!funds.run_id || !funds.active) return toast("Start the main trading bot first");
+  const button = $("recoveredExecutionButton");
+  button.disabled = true;
+  try {
+    state.funds = await request(`/api/v1/trading/sessions/${encodeURIComponent(funds.run_id)}/recovered-signals`, {
+      method: "PATCH", body: JSON.stringify({ enabled: !funds.recovered_signals_enabled }),
+    });
+    toast(`Recovered-signal trading ${state.funds.recovered_signals_enabled ? "enabled" : "disabled"}`);
+  } catch (error) { toast(error.message); }
+  finally { renderRecoveredSignals(); }
+}
+
+async function transferFunds() {
+  const funds = state.funds || {};
+  const source = $("fundTransferSource").value;
+  const destination = $("fundTransferDestination").value;
+  const amount = Number($("fundTransferAmount").value);
+  if (!funds.run_id || !funds.active) return toast("Start the main trading bot first");
+  if (source === destination) return toast("Choose two different wallets");
+  if (!Number.isFinite(amount) || amount <= 0) return toast("Enter a valid amount");
+  const button = $("fundTransferButton");
+  button.disabled = true;
+  try {
+    state.funds = await request(`/api/v1/trading/sessions/${encodeURIComponent(funds.run_id)}/fund-transfers`, {
+      method: "POST", body: JSON.stringify({ source, destination, amount }),
+    });
+    $("fundTransferAmount").value = "";
+    toast("Funds moved successfully");
+    await loadRecoveredSignals();
+  } catch (error) { toast(error.message); }
+  finally { button.disabled = false; renderRecoveredSignals(); }
 }
 
 async function selectSession(sessionId) {
@@ -754,231 +843,34 @@ async function loadSessions() {
   if (state.live) renderLive();
 }
 
-async function toggleAutomaticTrading(event) {
-  const toggle = event.currentTarget;
+async function toggleAutomaticTrading() {
+  const button = $("autoTradingButton");
   const active = activeSession();
-  if (toggle.checked && !active) {
-    openSessionDialog();
-    return;
-  }
-  if (!toggle.checked && active) {
-    toggle.disabled = true;
-    try {
+  button.disabled = true;
+  try {
+    if (active) {
       await request(`/api/v1/trading/sessions/${encodeURIComponent(active.session_id)}/stop`, { method: "POST" });
       active.status = "STOPPING";
       active.status_detail.accepting_entries = false;
-      renderSessionList();
-      toast("Real-money session is stopping");
-    } catch (error) { toast(error.message); await loadSessions(); }
-  }
-}
-
-function optionalFormNumber(form, name) {
-  const value = form.elements[name].value.trim();
-  return value === "" ? null : Number(value);
-}
-
-function executableBudget(bankroll, fraction, cap, multiplier = 1) {
-  let base = bankroll * fraction;
-  if (cap != null && Number.isFinite(cap)) base = Math.min(base, cap);
-  if (!Number.isFinite(base) || base <= 0 || multiplier <= 0) return { amount: 0, skipped: true, floored: false };
-  const raw = base * multiplier;
-  if (raw < 1) {
-    const canFloor = bankroll >= 1 && (cap == null || cap >= 1);
-    return canFloor
-      ? { amount: 1, skipped: false, floored: true }
-      : { amount: 0, skipped: true, floored: false };
-  }
-  return { amount: Math.min(bankroll, raw), skipped: false, floored: false };
-}
-
-function riskBudgetCopy(bankroll, fraction, cap, thinFraction, movementFraction) {
-  const describe = (label, multiplier) => {
-    const budget = executableBudget(bankroll, fraction, cap, multiplier);
-    if (multiplier <= 0 || budget.skipped) return `${label}: SKIP`;
-    return `${label}: ${fmt.usd(budget.amount)}${budget.floored ? " (raised to $1 minimum)" : ""}`;
-  };
-  return `${describe("Thin gap", thinFraction)} · ${describe("Movement warning", movementFraction)} · ${riskRuleText().budget} · fees separate`;
-}
-
-function syncSessionBalance() {
-  const form = $("sessionForm");
-  const cash = Number(state.account?.balance_usdc);
-  const accountReady = Boolean(state.account?.connected
-                               && Number.isFinite(cash) && cash >= 1);
-  $("startSessionButton").disabled = !accountReady;
-  for (const name of ["maximum_trade_usd", "max_loss_usd"]) {
-    const input = form.elements[name];
-    if (Number.isFinite(cash)) {
-      input.max = String(cash);
-      if (input.value && Number(input.value) > cash) input.value = cash.toFixed(2);
+      toast("Real-money bot is stopping");
     } else {
-      input.removeAttribute("max");
+      const cash = Number(state.account?.balance_usdc);
+      if (!state.account?.connected || !Number.isFinite(cash) || cash < 1.25) {
+        throw new Error(state.account?.error || "At least $1.25 available USDC is required for an 80% order");
+      }
+      const session = await request("/api/v1/trading/sessions", {
+        method: "POST", body: JSON.stringify({}),
+      });
+      state.selectedSessionId = session.session_id;
+      toast("Real-money bot started");
     }
-  }
-  form.elements.maximum_trade_usd.min = "1";
-  if (form.elements.maximum_trade_usd.value
-      && Number(form.elements.maximum_trade_usd.value) < 1) {
-    form.elements.maximum_trade_usd.value = "1.00";
-  }
-  if (!accountReady) {
-    $("sessionFormMessage").textContent = state.account?.error ||
-      "Connect a Polymarket account with at least $1 available before activating the bot.";
-  } else if ($("sessionFormMessage").textContent.includes("Polymarket account")) {
-    $("sessionFormMessage").textContent = "";
-  }
-  updateSessionBudgetPreview();
-}
-
-function updateSessionBudgetPreview() {
-  const form = $("sessionForm");
-  const bankroll = Number(state.account?.balance_usdc);
-  const fraction = Number(form.elements.allocation_percent.value) / 100;
-  const cap = optionalFormNumber(form, "maximum_trade_usd");
-  const normal = executableBudget(bankroll, fraction, cap);
-  $("sessionBudgetPreview").textContent = normal.skipped ? "NOT TRADABLE" : `${fmt.usd(normal.amount)}${normal.floored ? " minimum" : ""}`;
-  $("sessionRiskBudgetPreview").textContent = riskBudgetCopy(
-    bankroll, fraction, cap,
-    Number(form.elements.thin_gap_allocation_percent.value) / 100,
-    Number(form.elements.movement_disagreement_allocation_percent.value) / 100);
-}
-
-function updateEditSessionBudgetPreview() {
-  const form = $("sessionEditForm");
-  const bankroll = Number(state.account?.balance_usdc);
-  const fraction = Number(form.elements.allocation_percent.value) / 100;
-  const cap = optionalFormNumber(form, "maximum_trade_usd");
-  const normal = executableBudget(bankroll, fraction, cap);
-  $("editSessionBudgetPreview").textContent = normal.skipped ? "NOT TRADABLE" : `${fmt.usd(normal.amount)}${normal.floored ? " minimum" : ""}`;
-  $("editSessionRiskBudgetPreview").textContent = riskBudgetCopy(
-    bankroll, fraction, cap,
-    Number(form.elements.thin_gap_allocation_percent.value) / 100,
-    Number(form.elements.movement_disagreement_allocation_percent.value) / 100);
-}
-
-function openEditSessionDialog() {
-  const session = state.sessionDetail;
-  if (!session || activeSession()?.session_id !== session.session_id || isTerminalSession(session)) {
-    toast("Only the active session can be edited");
-    return;
-  }
-  const config = session.configuration;
-  const form = $("sessionEditForm");
-  form.elements.name.value = session.name || "";
-  form.elements.allocation_percent.value = Number(config.allocation_fraction) * 100;
-  form.elements.maximum_trade_usd.value = config.maximum_trade_usd ?? "";
-  form.elements.confidence_percent.value = Number(config.model_threshold) * 100;
-  form.elements.minimum_edge_percent.value = Number(config.minimum_edge) * 100;
-  form.elements.entry_cutoff_seconds.value = config.entry_cutoff_seconds;
-  form.elements.thin_gap_allocation_percent.value = Number(config.thin_gap_allocation_fraction ?? .25) * 100;
-  form.elements.movement_disagreement_allocation_percent.value = Number(config.movement_disagreement_allocation_fraction ?? .5) * 100;
-  form.elements.max_trades.value = config.max_trades ?? "";
-  form.elements.target_profit_usd.value = config.target_profit_usd ?? "";
-  form.elements.max_loss_usd.value = config.max_loss_usd ?? "";
-  const cash = Number(state.account?.balance_usdc);
-  if (Number.isFinite(cash)) {
-    form.elements.maximum_trade_usd.max = String(cash);
-    form.elements.max_loss_usd.max = String(cash);
-  }
-  form.elements.maximum_trade_usd.min = "1";
-  $("editSessionFormMessage").textContent = "";
-  const rule = riskRuleText();
-  $("editSessionRiskRuleTitle").textContent = rule.title;
-  $("editSessionRiskRuleCopy").textContent = rule.copy;
-  updateEditSessionBudgetPreview();
-  $("sessionEditDialog").showModal();
-}
-
-async function updateSession(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const submit = form.querySelector("button[type=submit]");
-  const sessionId = state.sessionDetail?.session_id;
-  if (!sessionId) return;
-  const payload = {
-    name: form.elements.name.value.trim() || null,
-    allocation_percent: Number(form.elements.allocation_percent.value),
-    maximum_trade_usd: optionalFormNumber(form, "maximum_trade_usd"),
-    confidence_percent: Number(form.elements.confidence_percent.value),
-    minimum_edge_percent: Number(form.elements.minimum_edge_percent.value),
-    entry_cutoff_seconds: Number(form.elements.entry_cutoff_seconds.value),
-    thin_gap_allocation_percent: Number(form.elements.thin_gap_allocation_percent.value),
-    movement_disagreement_allocation_percent: Number(form.elements.movement_disagreement_allocation_percent.value),
-    max_trades: optionalFormNumber(form, "max_trades"),
-    target_profit_usd: optionalFormNumber(form, "target_profit_usd"),
-    max_loss_usd: optionalFormNumber(form, "max_loss_usd"),
-  };
-  submit.disabled = true;
-  $("editSessionFormMessage").textContent = "";
-  try {
-    await request(`/api/v1/trading/sessions/${encodeURIComponent(sessionId)}`, {
-      method: "PATCH", body: JSON.stringify(payload),
-    });
-    $("sessionEditDialog").close();
     await loadSessions();
-    toast("Runtime configuration updated");
   } catch (error) {
-    $("editSessionFormMessage").textContent = error.message;
-  } finally { submit.disabled = false; }
-}
-
-function openSessionDialog() {
-  if (activeSession()) {
-    toast("Stop the active session before creating another one");
+    toast(error.message);
+    await loadSessions().catch(() => {});
+  } finally {
     renderTradingControl();
-    return;
   }
-  if (!state.dashboard?.capabilities?.automatic_real_trading) {
-    toast("Trading-session runtime is unavailable");
-    return;
-  }
-  const cash = Number(state.account?.balance_usdc);
-  if (!state.account?.connected || !Number.isFinite(cash) || cash < 1) {
-    toast(state.account?.error || "Connect a Polymarket account with at least $1 available");
-    return;
-  }
-  const form = $("sessionForm");
-  form.reset();
-  const rule = riskRuleText();
-  $("sessionRiskRuleTitle").textContent = rule.title;
-  $("sessionRiskRuleCopy").textContent = rule.copy;
-  $("sessionFormMessage").textContent = "";
-  syncSessionBalance();
-  updateSessionBudgetPreview();
-  $("sessionDialog").showModal();
-}
-
-async function startSession(event) {
-  event.preventDefault();
-  const form = event.currentTarget;
-  const submit = form.querySelector("button[type=submit]");
-  const payload = {
-    mode: "real",
-    name: form.elements.name.value.trim() || null,
-    allocation_percent: Number(form.elements.allocation_percent.value),
-    maximum_trade_usd: optionalFormNumber(form, "maximum_trade_usd"),
-    confidence_percent: Number(form.elements.confidence_percent.value),
-    minimum_edge_percent: Number(form.elements.minimum_edge_percent.value),
-    entry_cutoff_seconds: Number(form.elements.entry_cutoff_seconds.value),
-    thin_gap_allocation_percent: Number(form.elements.thin_gap_allocation_percent.value),
-    movement_disagreement_allocation_percent: Number(form.elements.movement_disagreement_allocation_percent.value),
-    max_trades: optionalFormNumber(form, "max_trades"),
-    target_profit_usd: optionalFormNumber(form, "target_profit_usd"),
-    max_loss_usd: optionalFormNumber(form, "max_loss_usd"),
-  };
-  submit.disabled = true;
-  $("sessionFormMessage").textContent = "";
-  try {
-    const session = await request("/api/v1/trading/sessions", {
-      method: "POST", body: JSON.stringify(payload),
-    });
-    state.selectedSessionId = session.session_id;
-    $("sessionDialog").close();
-    await loadSessions();
-    toast("Real-money session started");
-  } catch (error) {
-    $("sessionFormMessage").textContent = error.message;
-  } finally { submit.disabled = false; }
 }
 
 async function refresh() {
@@ -988,7 +880,7 @@ async function refresh() {
     $("collectorStatus").textContent = health.collector.fresh ? "Live" : health.collector.available ? "Stale" : "Offline";
     $("collectorStatus").className = health.collector.fresh ? "positive" : "negative";
     renderLive(); renderCharts(); renderStatistics(); renderAccount();
-    const followups = [loadSessions()];
+    const followups = [loadSessions(), loadRecoveredSignals()];
     if ($("historyView").classList.contains("active")) followups.push(loadRounds());
     await Promise.all(followups);
   } catch (error) {
@@ -1013,7 +905,7 @@ function connectSockets() {
     state.live = JSON.parse(event.data);
     renderLive();
     if (previousSlug && state.live?.prediction?.slug !== previousSlug) {
-      Promise.all([loadRounds(), loadSessions(), request("/api/v1/statistics")]).then(([, , statistics]) => {
+      Promise.all([loadRounds(), loadSessions(), loadRecoveredSignals(), request("/api/v1/statistics")]).then(([, , , statistics]) => {
         state.dashboard.statistics = statistics;
         renderStatistics();
       }).catch(() => {});
@@ -1048,7 +940,6 @@ function connectSockets() {
     renderAccount();
     renderSessionList();
     renderSessionDetail();
-    if ($("sessionDialog").open) syncSessionBalance();
   };
   const reconnect = () => { setConnection("offline", "Reconnecting"); clearTimeout(reconnectTimer); reconnectTimer = setTimeout(connectSockets, 2500); };
   liveSocket.onclose = reconnect; liveSocket.onerror = () => liveSocket.close();
@@ -1062,11 +953,12 @@ function changeView(name) {
   document.querySelectorAll(".view").forEach(v => v.classList.remove("active"));
   document.querySelectorAll(".nav-item").forEach(v => v.classList.toggle("active", v.dataset.view === name));
   $(`${name}View`).classList.add("active");
-  const titles = { dashboard: ["LIVE OPERATIONS", "Market overview"], history: ["PERFORMANCE", "Round history"], trades: ["BOT EXECUTION", "Trade ledger"] };
+  const titles = { dashboard: ["LIVE OPERATIONS", "Market overview"], history: ["PERFORMANCE", "Round history"], trades: ["BOT EXECUTION", "Trade ledger"], profit: ["PROTECTED PROFIT", "Recovered-signal trading"] };
   [$("viewEyebrow").textContent, $("viewTitle").textContent] = titles[name];
   history.replaceState(null, "", `#${name}`);
   if (name === "history") loadRounds().catch(error => toast(error.message));
   if (name === "trades") loadSessions().catch(error => toast(error.message));
+  if (name === "profit") loadRecoveredSignals().catch(error => toast(error.message));
 }
 
 document.querySelectorAll(".nav-item").forEach(button => button.addEventListener("click", () => changeView(button.dataset.view)));
@@ -1086,16 +978,12 @@ $("tradesPrevious").addEventListener("click", () => movePage("trades", -1, reloa
 $("tradesNext").addEventListener("click", () => movePage("trades", 1, reloadSelectedSession));
 $("eventsPrevious").addEventListener("click", () => movePage("events", -1, reloadSelectedSession));
 $("eventsNext").addEventListener("click", () => movePage("events", 1, reloadSelectedSession));
-$("autoTradingToggle").addEventListener("change", toggleAutomaticTrading);
-$("newSessionButton").addEventListener("click", openSessionDialog);
-$("sessionForm").addEventListener("submit", startSession);
-$("sessionForm").addEventListener("input", updateSessionBudgetPreview);
-$("sessionDialogClose").addEventListener("click", () => { $("sessionDialog").close(); renderTradingControl(); });
-$("sessionDialog").addEventListener("close", renderTradingControl);
-$("editSessionButton").addEventListener("click", openEditSessionDialog);
-$("sessionEditForm").addEventListener("submit", updateSession);
-$("sessionEditForm").addEventListener("input", updateEditSessionBudgetPreview);
-$("editSessionDialogClose").addEventListener("click", () => $("sessionEditDialog").close());
+$("recoveredPrevious").addEventListener("click", () => movePage("recovered", -1, loadRecoveredSignals));
+$("recoveredNext").addEventListener("click", () => movePage("recovered", 1, loadRecoveredSignals));
+$("recoveredExecutionButton").addEventListener("click", toggleRecoveredExecution);
+$("fundTransferButton").addEventListener("click", transferFunds);
+$("autoTradingButton").addEventListener("click", toggleAutomaticTrading);
+$("newSessionButton").addEventListener("click", toggleAutomaticTrading);
 $("refreshButton").addEventListener("click", refresh);
 $("dialogClose").addEventListener("click", () => $("roundDialog").close());
 $("manualBuyButton").addEventListener("click", previewBuy);
@@ -1157,12 +1045,15 @@ setInterval(async () => {
   if (state.dashboard?.capabilities?.automatic_real_trading) {
     if (!sessionPollInFlight) {
       sessionPollInFlight = true;
-      try { await loadSessions(); } catch (_) {} finally { sessionPollInFlight = false; }
+      try {
+        await loadSessions();
+        if ($("profitView").classList.contains("active")) await loadRecoveredSignals();
+      } catch (_) {} finally { sessionPollInFlight = false; }
     }
   }
 }, 5000);
 
 const initialView = location.hash.slice(1);
-if (["history", "trades"].includes(initialView)) changeView(initialView);
+if (["history", "trades", "profit"].includes(initialView)) changeView(initialView);
 refresh();
 connectSockets();

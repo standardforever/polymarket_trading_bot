@@ -1,0 +1,174 @@
+{"kind":"price_connected","received_ms":1790614817983,"source":"polybolt"}
+{"kind":"error","received_ms":1790615117263,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790615213401,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790615485029,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790615732537,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790615870253,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790616690867,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790616746739,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790616826343,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790617260747,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790617530747,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790617941401,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790618039706,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790618732959,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790618907268,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790618916453,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790618925929,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790619405856,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790619647218,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790619929961,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790620021153,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790620091496,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790620097245,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790620512518,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790620529708,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790620689035,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790620709762,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790621008527,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790621162699,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790621455596,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790621723560,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623028517,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623056231,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623085892,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623402312,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790623506072,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623578409,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623613512,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623703615,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623715036,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623865234,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790623962648,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790624252050,"source":"polybolt","error":"ConnectionError"}
+{"kind":"price_disconnected","received_ms":1790624252051,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790624254451,"source":"polybolt"}
+{"kind":"error","received_ms":1790624702731,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790624735921,"source":"polybolt","error":"ConnectionError"}
+{"kind":"price_disconnected","received_ms":1790624735922,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790624738440,"source":"polybolt"}
+{"kind":"error","received_ms":1790624885794,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790625053068,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790625432892,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790625559296,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790626330068,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790626520251,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790626653734,"source":"polybolt","error":"ConnectionError"}
+{"kind":"price_disconnected","received_ms":1790626653744,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790626656355,"source":"polybolt"}
+{"kind":"error","received_ms":1790626729961,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790626837372,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790626927151,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790626949268,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627006021,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627078615,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627280898,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627289337,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627579461,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627609252,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627822349,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790627916438,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790628031378,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790628144959,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790628155763,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790628377272,"message":"Connection to remote host was lost."}
+{"kind":"price_error","received_ms":1790628708088,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790628709322,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790628712028,"source":"polybolt"}
+{"kind":"error","received_ms":1790629549320,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790629577428,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790629646035,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790629814014,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}
+{"kind":"error","received_ms":1790629846612,"message":"timed out"}
+{"kind":"error","received_ms":1790629859209,"message":"timed out"}
+{"kind":"error","received_ms":1790629873437,"message":"timed out"}
+{"kind":"error","received_ms":1790629892082,"message":"timed out"}
+{"kind":"error","received_ms":1790629917831,"message":"timed out"}
+{"kind":"error","received_ms":1790629943371,"message":"timed out"}
+{"kind":"error","received_ms":1790629968543,"message":"timed out"}
+{"kind":"error","received_ms":1790631300335,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"error","received_ms":1790631346027,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790631479727,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790632684988,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790632813794,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790633493050,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790634029191,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790634334691,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790634733072,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790634748202,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790634918068,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790634934498,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790635998922,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790636149848,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790636731628,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1790636734656,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790636736910,"source":"polybolt"}
+{"kind":"error","received_ms":1790637362219,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790637632179,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790637654283,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790637832822,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790637840271,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790637918288,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790638285197,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790638527935,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790638870708,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790638932189,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790639140815,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790639564705,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790639571190,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790639810997,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790640016722,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790640076813,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790640114284,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790640187522,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790640314774,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790641859684,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790642004229,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790642629193,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790642733106,"message":"WebSocket closed"}
+{"kind":"price_error","received_ms":1790643550106,"source":"polybolt","error":"WebSocketConnectionClosedException"}
+{"kind":"price_disconnected","received_ms":1790643550112,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790643552667,"source":"polybolt"}
+{"kind":"error","received_ms":1790643602646,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790643697052,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790643708190,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790643780994,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790645558973,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790645751532,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790646918943,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790646985944,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790647605335,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790647621020,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790647684070,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790647824549,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790648323424,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790648498029,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790649905966,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790650517628,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790650521196,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790650839642,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790650900973,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651057853,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651067464,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651129700,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651288541,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651300735,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651435643,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651540239,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651612858,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651637785,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790651856604,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790651881192,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790652364766,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790652611908,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790652741668,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790652760575,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790652809811,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790653517000,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790653805657,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790653839697,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790653952308,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790654144336,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790654162934,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790654490606,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790654543651,"message":"WebSocket closed"}

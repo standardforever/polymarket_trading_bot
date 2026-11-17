@@ -1,0 +1,18 @@
+{
+  "updated_ms": 1790532250625,
+  "run_id": "20260927T175037.398790Z",
+  "execution_mode": "paper",
+  "model_version": "btc_twap_v1",
+  "status": "STOPPING",
+  "starting_bankroll": 100.0,
+  "available_bankroll": 95.0,
+  "realized_profit": 0.0,
+  "trades": 1,
+  "wins": 0,
+  "losses": 0,
+  "open_positions": 1,
+  "candidates": 0,
+  "accepting_entries": false,
+  "stop_reason": "stopped_by_user",
+  "reason": "stopped_by_user"
+}

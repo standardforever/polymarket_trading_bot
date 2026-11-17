@@ -1,0 +1,16 @@
+{
+  "updated_ms": 1790370210228,
+  "run_id": "20260925T201657.683972Z",
+  "status": "COMPLETED",
+  "starting_bankroll": 50.0,
+  "available_bankroll": 60.807969,
+  "realized_profit": 10.807969,
+  "trades": 4,
+  "wins": 4,
+  "losses": 0,
+  "open_positions": 0,
+  "candidates": 0,
+  "accepting_entries": false,
+  "stop_reason": "target_profit_reached",
+  "reason": "target_profit_reached"
+}

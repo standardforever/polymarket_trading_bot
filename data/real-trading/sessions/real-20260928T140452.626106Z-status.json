@@ -1,0 +1,18 @@
+{
+  "updated_ms": 1790613744739,
+  "run_id": "20260928T140452.626106Z",
+  "execution_mode": "real",
+  "model_version": "btc_guard_v4",
+  "status": "STOPPED",
+  "starting_bankroll": 52.080197,
+  "available_bankroll": 65.333245,
+  "realized_profit": 13.253048,
+  "trades": 2,
+  "wins": 2,
+  "losses": 0,
+  "open_positions": 0,
+  "candidates": 0,
+  "accepting_entries": false,
+  "stop_reason": "stopped_by_user",
+  "reason": "stopped_by_user"
+}

@@ -1,0 +1,14 @@
+.env
+.env.*
+!.env.example
+.git
+.gitignore
+.venv
+__pycache__
+*.py[cod]
+.pytest_cache
+data
+ui/node_modules
+.playwright-mcp
+docs
+tests

@@ -1,0 +1,20 @@
+{
+  "updated_ms": 1790654560308,
+  "run_id": "20260928T204413.242497Z",
+  "execution_mode": "real",
+  "model_version": "btc_guard_v4",
+  "status": "STOPPED",
+  "starting_bankroll": 12.003471,
+  "available_bankroll": 13.006273,
+  "realized_profit": 1.002802,
+  "trades": 4,
+  "wins": 3,
+  "losses": 1,
+  "open_positions": 0,
+  "candidates": 0,
+  "accepting_entries": false,
+  "stop_reason": null,
+  "last_slug": "btc-updown-5m-1790653800",
+  "last_result": "NO_FILL",
+  "reason": "runtime_restarted"
+}

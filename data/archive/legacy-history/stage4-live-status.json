@@ -1,0 +1,11 @@
+{
+  "updated_ms": 1791488501922,
+  "status": "WAITING",
+  "slug": "btc-updown-5m-1791488400",
+  "remaining_seconds": 198.0789999961853,
+  "decision_window_seconds": [
+    110,
+    120
+  ],
+  "message": "Collecting inputs for the first complete snapshot from 120 to 110 seconds"
+}

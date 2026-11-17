@@ -1,0 +1,41 @@
+{
+  "race_id": "20260927T181048.512124Z",
+  "created_ms": 1790532648512,
+  "name": "Model race 20260927T181048",
+  "configuration": {
+    "starting_bankroll": 100.0,
+    "allocation_fraction": 0.8,
+    "maximum_trade_usd": null,
+    "minimum_edge": 0.03,
+    "entry_cutoff_seconds": 30.0,
+    "thin_gap_allocation_fraction": 0.25,
+    "movement_disagreement_allocation_fraction": 0.5,
+    "planned_first_trade_budget": 80.0
+  },
+  "models": [
+    {
+      "model_version": "btc_twap_v1",
+      "name": "BTC TWAP v1",
+      "confidence": 0.9,
+      "risk_rule": "thin_gap_and_movement_disagreement"
+    },
+    {
+      "model_version": "btc_twap_v2",
+      "name": "BTC TWAP v2",
+      "confidence": 0.9,
+      "risk_rule": "thin_gap_and_movement_disagreement"
+    },
+    {
+      "model_version": "btc_regime_v3",
+      "name": "BTC Regime Guard v3",
+      "confidence": 0.875,
+      "risk_rule": "thin_gap_and_choppy_up"
+    },
+    {
+      "model_version": "btc_guard_v4",
+      "name": "BTC Dual Guard v4",
+      "confidence": 0.9,
+      "risk_rule": "thin_gap_and_movement_or_choppy_up"
+    }
+  ]
+}

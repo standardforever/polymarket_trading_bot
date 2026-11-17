@@ -1,0 +1,4 @@
+{"kind":"price_error","received_ms":1791721576836,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791721576836,"source":"polybolt"}
+{"kind":"error","received_ms":1791721576849,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791721500 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"summary","received_ms":1791721576876,"events":0,"paired_quotes":0,"connections":0,"errors":1,"rounds":0,"reference_ready":0,"btc_observations":0,"predictions":0}

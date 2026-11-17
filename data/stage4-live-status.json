@@ -1,0 +1,70 @@
+{
+  "updated_ms": 1791488580838,
+  "status": "SIGNAL",
+  "slug": "btc-updown-5m-1791488400",
+  "decision_ms": 1791488580819,
+  "remaining_seconds": 119.18099999427795,
+  "direction": "Down",
+  "reason": "analytic_unvalidated_signal",
+  "signal_method": "analytic_final_twap_core_consensus",
+  "probability_calibrated": false,
+  "p_up": 0.08314054969421042,
+  "p_down": 0.9168594503057896,
+  "estimated_edge": 0.048431450305789644,
+  "agreement": {
+    "settlement": "Down",
+    "movement": "Neutral",
+    "market": "Down",
+    "order_flow": "Up",
+    "movement_votes": [
+      1,
+      1,
+      -1,
+      -1
+    ],
+    "order_flow_votes": [
+      -1,
+      -1,
+      -1,
+      1,
+      1,
+      1,
+      1
+    ]
+  },
+  "probability_before_cap": 0.08314054969421042,
+  "probability_cap": 0.98,
+  "crossing_probability": 0.08314054969421042,
+  "distance_to_beat": -57.68767938564997,
+  "distance_source": "chainlink_twap_60s",
+  "market_stability": {
+    "regime": "choppy_up",
+    "direction": "Up",
+    "stability_score": 0.2719585852357083,
+    "net_30_bps": 2.3722025421768422,
+    "net_120_bps": 2.9618955757588146,
+    "range_30_bps": 3.0852961447777725,
+    "range_120_bps": 4.131088933537492,
+    "path_efficiency_30": 0.3993993562860288,
+    "path_efficiency_120": 0.13311211476298043,
+    "trend_r2_30": 0.22296537823996138,
+    "trend_r2_120": 0.13409107457246308,
+    "reversal_rate_30": 0.48148148148148145,
+    "reversal_rate_120": 0.45132743362831856,
+    "largest_jump_share_30": 0.24273975387103197,
+    "largest_jump_share_120": 0.14315540729701767,
+    "max_tick_30_bps": 1.441734575074942,
+    "max_tick_120_bps": 3.1853702292536097
+  },
+  "opening_price": "81767.557320070054019072",
+  "component_errors": {},
+  "warnings": [
+    "movement_disagreement",
+    "choppy_up_regime"
+  ],
+  "entry_asks": {
+    "Up": "0.15",
+    "Down": "0.86"
+  },
+  "message": "Prediction passed every filter"
+}

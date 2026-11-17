@@ -1,0 +1,211 @@
+- generic [ref=e2]:
+  - complementary [ref=e3]:
+    - navigation [ref=e8]:
+      - button "⌁ Overview" [ref=e9] [cursor=pointer]:
+        - generic [ref=e10]: ⌁
+        - text: Overview
+      - button "↺ Round history" [ref=e11] [cursor=pointer]:
+        - generic [ref=e12]: ↺
+        - text: Round history
+      - button "⇄ Bot trades" [ref=e13] [cursor=pointer]:
+        - generic [ref=e14]: ⇄
+        - text: Bot trades
+      - button "◇ Profit trades" [active] [ref=e15] [cursor=pointer]:
+        - generic [ref=e16]: ◇
+        - text: Profit trades
+  - main [ref=e21]:
+    - generic [ref=e22]:
+      - generic [ref=e23]:
+        - paragraph [ref=e24]: PROTECTED PROFIT
+        - heading "Recovered-signal trading" [level=1] [ref=e228]
+      - button "↻" [ref=e28] [cursor=pointer]
+    - text: Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade Round Decision Confidence Polymarket Actual Result Edge Trade
+    - generic [ref=e229]:
+      - article [ref=e230]:
+        - generic [ref=e231]:
+          - generic [ref=e232]: ◇
+          - generic [ref=e233]:
+            - text: RECOVERED SIGNALS
+            - strong [ref=e234]: Trade signals that become fully valid later
+            - paragraph [ref=e235]: Execution is active. A recovered entry uses 50% of the profit wallet, rounded up to the exchange minimum when the wallet can fund it.
+        - generic [ref=e236]:
+          - generic [ref=e237]: ACTIVE
+          - button "Disable trading" [ref=e238] [cursor=pointer]
+      - generic [ref=e239]:
+        - article [ref=e240]:
+          - text: SAFE RESERVE
+          - strong [ref=e241]: $0.00
+          - paragraph [ref=e242]: Never used automatically.
+        - article [ref=e243]:
+          - text: CORE TRADING
+          - strong [ref=e244]: $101.73
+          - paragraph [ref=e245]: Funds clean signals that pass immediately.
+        - article [ref=e246]:
+          - text: PROFIT TRADING
+          - strong [ref=e247]: $3.15
+          - paragraph [ref=e248]: Funds recovered signals at 50% per entry.
+        - article [ref=e249]:
+          - text: LIQUID USDC
+          - strong [ref=e250]: $104.87
+          - paragraph [ref=e251]: Actual spendable Polymarket cash.
+      - article [ref=e252]:
+        - generic [ref=e254]:
+          - text: INTERNAL FUND TRANSFER
+          - heading "Move uncommitted funds" [level=2] [ref=e255]
+          - paragraph [ref=e256]: These transfers change the bot ledger; they do not submit an on-chain transaction.
+        - generic [ref=e257]:
+          - generic [ref=e258]:
+            - generic [ref=e259]: From
+            - combobox "From" [ref=e260]:
+              - option "Safe reserve" [selected]
+              - option "Core trading"
+              - option "Profit trading"
+          - generic [ref=e261]:
+            - generic [ref=e262]: To
+            - combobox "To" [ref=e263]:
+              - option "Profit trading" [selected]
+              - option "Core trading"
+              - option "Safe reserve"
+          - generic [ref=e264]:
+            - generic [ref=e265]: Amount
+            - spinbutton "Amount" [ref=e266]
+          - button "Move funds" [ref=e267] [cursor=pointer]
+      - generic [ref=e268]:
+        - generic [ref=e779]:
+          - generic [ref=e780]: Watched
+          - generic [ref=e781]: "10"
+        - generic [ref=e782]:
+          - generic [ref=e783]: Fillable recoveries
+          - generic [ref=e784]: "0"
+        - generic [ref=e785]:
+          - generic [ref=e786]: Hypothetical W / L
+          - generic [ref=e787]: 0 / 0
+        - generic [ref=e788]:
+          - generic [ref=e789]: Hypothetical P&L
+          - generic [ref=e790]: $0.00
+        - generic [ref=e791]:
+          - generic [ref=e792]: Real recovered trades
+          - generic [ref=e793]: "0"
+        - generic [ref=e794]:
+          - generic [ref=e795]: Real recovered P&L
+          - generic [ref=e796]: $0.00
+      - generic [ref=e287]:
+        - article [ref=e288]:
+          - generic [ref=e289]:
+            - generic [ref=e290]:
+              - text: LIVE SHADOW MONITORING
+              - heading "Rejected signals still being checked" [level=2] [ref=e291]
+            - generic [ref=e292]: 1 ACTIVE
+          - generic [ref=e797]:
+            - generic [ref=e798]:
+              - strong [ref=e799]: "#1792158600 · Up"
+              - paragraph [ref=e800]: "Initial block: confidence below threshold"
+            - generic [ref=e801]:
+              - generic [ref=e802]: 50.5%
+              - generic [ref=e803]: strength 0.01
+            - emphasis [ref=e804]: fresh inputs unavailable:opening or twap unavailable
+        - article [ref=e295]:
+          - generic [ref=e297]:
+            - text: RECOVERED-SIGNAL LEDGER
+            - heading "Analysis and execution activity" [level=2] [ref=e298]
+          - generic [ref=e299]:
+            - generic [ref=e805]:
+              - generic [ref=e807]:
+                - strong [ref=e808]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e809]: "#1792158600"
+              - time [ref=e810]: 2:53:16 PM
+            - generic [ref=e811]:
+              - generic [ref=e813]:
+                - strong [ref=e814]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e815]: "#1792158600"
+              - time [ref=e816]: 2:53:15 PM
+            - generic [ref=e817]:
+              - generic [ref=e819]:
+                - strong [ref=e820]: RECOVERED SIGNAL WATCHING
+                - paragraph [ref=e821]: "#1792158600 · initially blocked by confidence below threshold · shadow monitoring started"
+              - time [ref=e822]: 2:53:12 PM
+            - generic [ref=e823]:
+              - generic [ref=e825]:
+                - strong [ref=e826]: RECOVERED SIGNAL WATCHING
+                - paragraph [ref=e827]: "#1792158600 · initially blocked by confidence below threshold · shadow monitoring started"
+              - time [ref=e828]: 2:53:00 PM
+            - generic [ref=e829]:
+              - generic [ref=e831]:
+                - strong [ref=e832]: ENTRY EXPIRED
+                - paragraph [ref=e833]: "#1792158300 · no acceptable fill before the entry cutoff"
+              - time [ref=e834]: 2:49:30 PM
+            - generic [ref=e835]:
+              - generic [ref=e837]:
+                - strong [ref=e838]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e839]: "#1792158300"
+              - time [ref=e840]: 2:48:17 PM
+            - generic [ref=e841]:
+              - generic [ref=e843]:
+                - strong [ref=e844]: ORDER REJECTED
+                - paragraph [ref=e845]: "#1792158300 · Polymarket rejected the FOK order"
+              - time [ref=e846]: 2:48:15 PM
+            - generic [ref=e847]:
+              - generic [ref=e849]:
+                - strong [ref=e850]: RECOVERED SIGNAL PASSED
+                - paragraph [ref=e851]: "#1792158300 · all entry rules passed after 3 confirmed snapshots"
+              - time [ref=e852]: 2:48:12 PM
+            - generic [ref=e853]:
+              - generic [ref=e855]:
+                - strong [ref=e856]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e857]: "#1792158300"
+              - time [ref=e858]: 2:48:12 PM
+            - generic [ref=e859]:
+              - generic [ref=e861]:
+                - strong [ref=e862]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e863]: "#1792158300"
+              - time [ref=e864]: 2:48:12 PM
+            - generic [ref=e865]:
+              - generic [ref=e867]:
+                - strong [ref=e868]: RECOVERED SIGNAL WATCHING
+                - paragraph [ref=e869]: "#1792158300 · initially blocked by confidence below threshold · shadow monitoring started"
+              - time [ref=e870]: 2:48:00 PM
+            - generic [ref=e871]:
+              - generic [ref=e873]:
+                - strong [ref=e874]: ENTRY EXPIRED
+                - paragraph [ref=e875]: "#1792158000 · no acceptable fill before the entry cutoff"
+              - time [ref=e876]: 2:44:30 PM
+            - generic [ref=e877]:
+              - generic [ref=e879]:
+                - strong [ref=e880]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e881]: "#1792158000"
+              - time [ref=e882]: 2:44:17 PM
+            - generic [ref=e883]:
+              - generic [ref=e885]:
+                - strong [ref=e886]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e887]: "#1792158000"
+              - time [ref=e888]: 2:44:17 PM
+            - generic [ref=e889]:
+              - generic [ref=e891]:
+                - strong [ref=e892]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e893]: "#1792158000"
+              - time [ref=e894]: 2:44:14 PM
+            - generic [ref=e895]:
+              - generic [ref=e897]:
+                - strong [ref=e898]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e899]: "#1792158000"
+              - time [ref=e900]: 2:44:13 PM
+            - generic [ref=e901]:
+              - generic [ref=e903]:
+                - strong [ref=e904]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e905]: "#1792158000"
+              - time [ref=e906]: 2:44:08 PM
+            - generic [ref=e907]:
+              - generic [ref=e909]:
+                - strong [ref=e910]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e911]: "#1792158000"
+              - time [ref=e912]: 2:44:06 PM
+            - generic [ref=e913]:
+              - generic [ref=e915]:
+                - strong [ref=e916]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e917]: "#1792158000"
+              - time [ref=e918]: 2:43:57 PM
+            - generic [ref=e919]:
+              - generic [ref=e921]:
+                - strong [ref=e922]: ENTRY VALIDATION CHANGED
+                - paragraph [ref=e923]: "#1792158000"
+              - time [ref=e924]: 2:43:56 PM

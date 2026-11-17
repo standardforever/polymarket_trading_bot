@@ -20,15 +20,32 @@ Add the CLOB credentials and signing key to `.env`. Existing lowercase names (`P
 
 The API is available at `http://127.0.0.1:8000`; interactive documentation is at `/docs`.
 
-Real-money bot sessions are started from the dashboard. Configure allocation, a per-trade cap, minimum confidence and edge, entry cutoff, warning sizes, and optional trade-count, profit, and loss limits. The account's current USDC balance supplies the session balance. Once activated, qualified entries use bounded fill-or-kill orders without confirmation for each trade.
+Run both services with Docker Compose:
 
-Turning a session off cancels unfilled candidates. Filled positions remain tracked until resolution. Non-zero warning allocations are raised to Polymarket's $1 market-buy minimum when the account and per-trade cap can fund it. Explicit FOK no-fills remain candidates and retry at most once per second until the configured cutoff. An ambiguous submission stops the session for reconciliation to prevent a duplicate real order.
+```bash
+cp .env.example .env
+# Add the Polymarket credentials to .env, then run:
+docker compose up --build
+```
+
+The dashboard is available at `http://127.0.0.1:5173` and the API at
+`http://127.0.0.1:8000`. Runtime records are persisted in the local `data/`
+directory. Use `docker compose up -d --build` to run in the background and
+`docker compose down` to stop the services.
+
+The dashboard starts and stops the real-money bot with one button. Each session uses fixed production rules: 98% confidence, strength above 2.5, Polymarket direction agreement, no thin gap, no movement disagreement, fresh inputs, and an executable entry strictly above 80 cents and no higher than 97 cents. Qualified entries use bounded fill-or-kill orders without confirmation for each trade.
+
+A signal that fails at the initial decision is retained as a recovery candidate until 30 seconds remain. The bot rebuilds its probability, strength, warnings, direction agreement, value limit, and executable quote on every fresh update. A recovered candidate must pass all normal rules for three consecutive snapshots spanning at least two seconds. Recovered execution has its own dashboard switch. Switching execution off does not stop observation: fillable opportunities and their eventual hypothetical result continue to be logged.
+
+Recovered trades use only the profit-trading wallet and allocate 50% of that wallet. When 50% is below the exchange's $1 principal minimum, the bot raises the order to the minimum only when the profit wallet can cover the principal and fee. It never draws the missing amount from core trading capital or the safe reserve.
+
+Turning a session off cancels unfilled candidates. Filled positions remain tracked until resolution. The bot uses 80% of the current session trading capital for each entry. Explicit FOK no-fills remain candidates and retry at most once per second until 30 seconds remain. An ambiguous submission stops the session for reconciliation to prevent a duplicate real order.
 
 An active session survives application restarts. The runtime restores its configuration, counters, realized P&L, and open positions, then continues accepting future signals. Decisions and resolutions written while the API was offline are replayed. A round that had already reached exchange submission is never submitted a second time during recovery.
 
 After a market ends, an account position at its final 0 or 1 price can update the result before the slower collector settlement arrives. Redeemable winnings remain position value until Polymarket reports them in available USDC. The bot does not redeem positions automatically.
 
-The bot uses one probability calculation with a 2 bps uncertainty floor and a 98% probability cap. Its safeguards use the smaller of the spot and TWAP gap for close-to-line detection, block a thin gap combined with either movement disagreement or `choppy_up`, require an executable price above 80 cents, and pause entry after the selected contract moves more than 10 cents below its signal price. A paused candidate remains monitored and can trade if it recovers before the entry cutoff. Thin-gap and movement-warning allocation percentages can be changed while a session runs; zero skips that single-warning case.
+The bot uses one probability calculation with a 2 bps uncertainty floor and a 98% probability cap. It blocks either a thin gap or movement disagreement on its own. A `choppy_up` label alone does not block a trade. The forecast and warnings are rebuilt from fresh BTC and order-book data before every submission attempt, so a cheaper price can trade only when the current forecast still passes. Profits are recorded as protected profit and excluded from all later sizing in that session; losses reduce trading capital.
 
 Serve existing history without live collection:
 
@@ -69,8 +86,11 @@ The prediction uses the official opening price and settlement estimate, recent B
 - `GET /api/v1/trades`
 - `GET /api/v1/statistics`
 - `GET|POST /api/v1/trading/sessions`
-- `GET|PATCH /api/v1/trading/sessions/{session_id}`
+- `GET /api/v1/trading/sessions/{session_id}`
 - `POST /api/v1/trading/sessions/{session_id}/stop`
+- `GET /api/v1/trading/funds`
+- `PATCH /api/v1/trading/sessions/{session_id}/recovered-signals`
+- `POST /api/v1/trading/sessions/{session_id}/fund-transfers`
 - `GET /api/v1/account`
 - `POST /api/v1/account/orders/preview`
 - `POST /api/v1/account/orders`
@@ -100,6 +120,8 @@ Open `http://127.0.0.1:5173`. Configure the API address in `ui/config.js`.
 - `data/active-rounds/` — temporary unresolved-round evidence
 - `data/archive/legacy-history/` — history from retired strategies
 - `data/real-trading/sessions/` — automated real-session logs and status
+- `data/real-trading/profit-signals/` — recovered-signal, shadow, and profit-trade logs
+- `data/real-trading/funds.json` — persistent core, profit-trading, and safe-reserve balances
 - `data/real-trading/manual-orders.jsonl` — manual-order audit trail
 
 ## Test

@@ -1,0 +1,5 @@
+{"kind":"price_connected","received_ms":1792155944902,"source":"polybolt"}
+{"kind":"error","received_ms":1792156128291,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1792156362177,"message":"WebSocket closed"}
+{"kind":"price_disconnected","received_ms":1792156418592,"source":"polybolt"}
+{"kind":"summary","received_ms":1792156418593,"events":326873,"paired_quotes":446,"connections":4,"errors":2,"rounds":2,"reference_ready":437,"btc_observations":448,"predictions":2}

@@ -1,0 +1,16 @@
+{
+  "updated_ms": 1791930183883,
+  "run_id": "20261011T235402.527119Z",
+  "status": "STOPPED",
+  "starting_bankroll": 3.013064,
+  "available_bankroll": 0.260594,
+  "realized_profit": -2.671363,
+  "trades": 11,
+  "wins": 8,
+  "losses": 3,
+  "open_positions": 0,
+  "candidates": 0,
+  "accepting_entries": false,
+  "stop_reason": "stopped_by_user",
+  "reason": "stopped_by_user"
+}

@@ -1,0 +1,20 @@
+{
+  "session_id": "20260928T082901.419422Z",
+  "created_ms": 1790584141419,
+  "name": "Real session 20260928T082901",
+  "configuration": {
+    "model_version": "btc_guard_v4",
+    "starting_bankroll": 4.492026,
+    "allocation_fraction": 0.6,
+    "maximum_trade_usd": 4.49,
+    "model_threshold": 0.9,
+    "minimum_edge": 0.03,
+    "entry_cutoff_seconds": 30.0,
+    "max_trades": 5,
+    "target_profit_usd": null,
+    "max_loss_usd": null,
+    "thin_gap_allocation_fraction": 0.25,
+    "movement_disagreement_allocation_fraction": 0.5,
+    "planned_first_trade_budget": 2.6952156
+  }
+}

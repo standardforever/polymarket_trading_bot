@@ -1,0 +1,18 @@
+{
+  "session_id": "20260926T083400.514062Z",
+  "created_ms": 1790411640514,
+  "name": "Paper session 20260926T083400",
+  "configuration": {
+    "starting_bankroll": 50.0,
+    "allocation_fraction": 1.0,
+    "maximum_trade_usd": null,
+    "model_threshold": 0.9,
+    "minimum_edge": 0.03,
+    "entry_cutoff_seconds": 30.0,
+    "max_trades": null,
+    "target_profit_usd": null,
+    "max_loss_usd": null,
+    "planned_first_trade_budget": 50.0
+  },
+  "paper_only": true
+}

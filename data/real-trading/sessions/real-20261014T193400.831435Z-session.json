@@ -1,0 +1,24 @@
+{
+  "session_id": "20261014T193400.831435Z",
+  "created_ms": 1792006440831,
+  "name": "Real session 20261014T193400",
+  "configuration": {
+    "allocation_fraction": 0.8,
+    "maximum_trade_usd": null,
+    "model_threshold": 0.98,
+    "minimum_edge": 0.0,
+    "entry_cutoff_seconds": 30.0,
+    "max_trades": null,
+    "target_profit_usd": null,
+    "max_loss_usd": null,
+    "thin_gap_allocation_fraction": 0.0,
+    "movement_disagreement_allocation_fraction": 0.0,
+    "starting_bankroll": 2.360594,
+    "planned_first_trade_budget": 1.6524157999999998,
+    "minimum_strength": 2.5,
+    "maximum_entry_price": 0.97,
+    "protect_profits": true,
+    "fresh_revalidation": true,
+    "strict_risk_rules": true
+  }
+}

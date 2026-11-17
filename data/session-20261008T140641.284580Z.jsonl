@@ -1,0 +1,74 @@
+{"kind":"price_error","received_ms":1791468420934,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468420934,"source":"polybolt"}
+{"kind":"error","received_ms":1791468421463,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by ConnectTimeoutError(<HTTPSConnection(host='gamma-api.polymarket.com', port=443) at 0x10b2a4c20>, 'Connection to gamma-api.polymarket.com timed out. (connect timeout=10)'))"}
+{"kind":"price_error","received_ms":1791468421949,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468421949,"source":"polybolt"}
+{"kind":"error","received_ms":1791468422474,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"price_error","received_ms":1791468423958,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468423958,"source":"polybolt"}
+{"kind":"error","received_ms":1791468424478,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"price_error","received_ms":1791468427960,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468427961,"source":"polybolt"}
+{"kind":"error","received_ms":1791468428545,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"error","received_ms":1791468456741,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by ConnectTimeoutError(<HTTPSConnection(host='gamma-api.polymarket.com', port=443) at 0x10b2b60d0>, 'Connection to gamma-api.polymarket.com timed out. (connect timeout=10)'))"}
+{"kind":"price_error","received_ms":1791468465967,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468465968,"source":"polybolt"}
+{"kind":"error","received_ms":1791468491841,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by ConnectTimeoutError(<HTTPSConnection(host='gamma-api.polymarket.com', port=443) at 0x10b2b7890>, 'Connection to gamma-api.polymarket.com timed out. (connect timeout=10)'))"}
+{"kind":"price_error","received_ms":1791468510975,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468510975,"source":"polybolt"}
+{"kind":"error","received_ms":1791468526958,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by ConnectTimeoutError(<HTTPSConnection(host='gamma-api.polymarket.com', port=443) at 0x10b2b7250>, 'Connection to gamma-api.polymarket.com timed out. (connect timeout=10)'))"}
+{"kind":"price_error","received_ms":1791468532496,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468532496,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791468547503,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468547504,"source":"polybolt"}
+{"kind":"error","received_ms":1791468552025,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by NewConnectionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to establish a new connection: [Errno 51] Network is unreachable\"))"}
+{"kind":"price_error","received_ms":1791468562508,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468562508,"source":"polybolt"}
+{"kind":"error","received_ms":1791468567046,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468300 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"price_connected","received_ms":1791468595452,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791468615672,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1791468618700,"source":"polybolt"}
+{"kind":"error","received_ms":1791468643065,"message":"No messages or PONG for 25 seconds"}
+{"kind":"error","received_ms":1791468654120,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}
+{"kind":"price_error","received_ms":1791468655169,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1791468655171,"source":"polybolt"}
+{"kind":"error","received_ms":1791468684370,"message":"Connection to remote host was lost."}
+{"kind":"price_connected","received_ms":1791468691713,"source":"polybolt"}
+{"kind":"error","received_ms":1791468706523,"message":"_ssl.c:1011: The handshake operation timed out"}
+{"kind":"error","received_ms":1791468724657,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}
+{"kind":"price_error","received_ms":1791468734349,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1791468737390,"source":"polybolt"}
+{"kind":"error","received_ms":1791468755193,"message":"timed out"}
+{"kind":"price_error","received_ms":1791468793381,"source":"polybolt","error":"WebSocketTimeoutException"}
+{"kind":"price_disconnected","received_ms":1791468795135,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1791468812093,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791468864810,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1791468868097,"source":"polybolt"}
+{"kind":"error","received_ms":1791468873542,"message":"No messages or PONG for 25 seconds"}
+{"kind":"error","received_ms":1791468898636,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}
+{"kind":"price_error","received_ms":1791468899137,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468899156,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791468901198,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468901219,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791468935241,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468935254,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791468943259,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468943259,"source":"polybolt"}
+{"kind":"error","received_ms":1791468943691,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468900 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"price_error","received_ms":1791468958312,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468958312,"source":"polybolt"}
+{"kind":"error","received_ms":1791468958780,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468900 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"price_error","received_ms":1791468973365,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791468973370,"source":"polybolt"}
+{"kind":"error","received_ms":1791468973825,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Max retries exceeded with url: /events/slug/btc-updown-5m-1791468900 (Caused by NameResolutionError(\"HTTPSConnection(host='gamma-api.polymarket.com', port=443): Failed to resolve 'gamma-api.polymarket.com' ([Errno 8] nodename nor servname provided, or not known)\"))"}
+{"kind":"price_connected","received_ms":1791468994802,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791469066933,"source":"polybolt","error":"TimeoutError"}
+{"kind":"price_disconnected","received_ms":1791469069939,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791469070946,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791469070946,"source":"polybolt"}
+{"kind":"price_error","received_ms":1791469072959,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791469072959,"source":"polybolt"}
+{"kind":"error","received_ms":1791469075649,"message":"No messages or PONG for 25 seconds"}
+{"kind":"price_error","received_ms":1791469076965,"source":"polybolt","error":"WebSocketAddressException"}
+{"kind":"price_disconnected","received_ms":1791469076965,"source":"polybolt"}
+{"kind":"error","received_ms":1791469100669,"message":"HTTPSConnectionPool(host='gamma-api.polymarket.com', port=443): Read timed out. (read timeout=10)"}

@@ -4,10 +4,14 @@ import math
 from statistics import NormalDist
 
 
-RECOMMENDED_CONFIDENCE = .90
+RECOMMENDED_CONFIDENCE = .98
+MINIMUM_STRENGTH = 2.5
 MINIMUM_ENTRY_PRICE = .80
-MAXIMUM_ADVERSE_PRICE_MOVE = .10
-RISK_RULE = "thin_gap_and_movement_or_choppy_up"
+MAXIMUM_ENTRY_PRICE = .97
+RECOVERED_CONFIDENCE = .90
+RECOVERED_MINIMUM_STRENGTH = 2.5
+RECOVERED_MINIMUM_GAP_BPS = 5.0
+RISK_RULE = "thin_gap_or_movement_disagreement"
 
 
 def probability_snapshot(component_rows):

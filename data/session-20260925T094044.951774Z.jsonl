@@ -1,0 +1,27 @@
+{"kind":"price_connected","received_ms":1790329246549,"source":"polybolt"}
+{"kind":"error","received_ms":1790329290863,"message":"[Errno 2] No such file or directory: 'data/.stage4-live-status.json.tmp' -> 'data/stage4-live-status.json'"}
+{"kind":"error","received_ms":1790329612737,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790329986169,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790330371492,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790331800619,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790335608384,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790336158389,"message":"WebSocket closed"}
+{"kind":"error","received_ms":1790337459516,"message":"Connection to remote host was lost."}
+{"kind":"error","received_ms":1790337523365,"message":"Connection to remote host was lost."}
+{"kind":"price_error","received_ms":1790338881011,"source":"polybolt","error":"ConnectionResetError"}
+{"kind":"price_disconnected","received_ms":1790338881013,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790338883502,"source":"polybolt"}
+{"kind":"error","received_ms":1790338884437,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"price_error","received_ms":1790339827859,"source":"polybolt","error":"ConnectionResetError"}
+{"kind":"price_disconnected","received_ms":1790339827862,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790339830496,"source":"polybolt"}
+{"kind":"error","received_ms":1790339830788,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"price_error","received_ms":1790340774021,"source":"polybolt","error":"ConnectionResetError"}
+{"kind":"price_disconnected","received_ms":1790340774040,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790340776615,"source":"polybolt"}
+{"kind":"error","received_ms":1790340777260,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"price_error","received_ms":1790341277342,"source":"polybolt","error":"ConnectionResetError"}
+{"kind":"price_disconnected","received_ms":1790341277346,"source":"polybolt"}
+{"kind":"price_connected","received_ms":1790341279559,"source":"polybolt"}
+{"kind":"error","received_ms":1790341280125,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}
+{"kind":"error","received_ms":1790341288385,"message":"('Connection aborted.', ConnectionResetError(54, 'Connection reset by peer'))"}

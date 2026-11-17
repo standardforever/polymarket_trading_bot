@@ -1,0 +1,22 @@
+{
+  "session_id": "20260927T133759.183453Z",
+  "created_ms": 1790516279183,
+  "name": "V3",
+  "configuration": {
+    "model_version": "btc_regime_v3",
+    "starting_bankroll": 50.0,
+    "allocation_fraction": 0.9,
+    "maximum_trade_usd": 50.0,
+    "model_threshold": 0.875,
+    "minimum_edge": 0.03,
+    "entry_cutoff_seconds": 30.0,
+    "max_trades": null,
+    "target_profit_usd": null,
+    "max_loss_usd": null,
+    "thin_gap_allocation_fraction": 0.25,
+    "movement_disagreement_allocation_fraction": 0.5,
+    "planned_first_trade_budget": 45.0
+  },
+  "mode": "paper",
+  "paper_only": true
+}

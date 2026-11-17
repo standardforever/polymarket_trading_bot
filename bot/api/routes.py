@@ -8,99 +8,38 @@ from typing import Literal
 
 from fastapi import FastAPI, HTTPException, Query, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .repository import BotRepository
 from ..live import LiveStore
-from ..sessions import TradingSessionManager
+from ..sessions import TradingSessionManager, production_configuration
 from ..account import PolymarketAccount
 
 
 class TradingSessionCreate(BaseModel):
-    name: str | None = Field(None, max_length=60)
-    allocation_percent: float = Field(80, gt=0, le=100)
-    maximum_trade_usd: float | None = Field(None, gt=0, le=1_000_000)
-    confidence_percent: float = Field(90, ge=50, le=98)
-    minimum_edge_percent: float = Field(3, ge=0, lt=100)
-    entry_cutoff_seconds: float = Field(30, ge=5, lt=110)
-    max_trades: int | None = Field(None, ge=1, le=288)
-    target_profit_usd: float | None = Field(None, gt=0, le=1_000_000)
-    max_loss_usd: float | None = Field(None, gt=0, le=1_000_000)
-    thin_gap_allocation_percent: float = Field(25, ge=0, le=100)
-    movement_disagreement_allocation_percent: float = Field(50, ge=0, le=100)
-
-    @model_validator(mode="after")
-    def validate_session_limits(self):
-        if self.maximum_trade_usd is not None and self.maximum_trade_usd < 1:
-            raise ValueError("real maximum trade must be at least $1")
-        if self.name is not None:
-            self.name = self.name.strip() or None
-        return self
+    """The production strategy is fixed; activation accepts no risk overrides."""
+    model_config = ConfigDict(extra="forbid")
 
     def runtime_configuration(self):
-        return {
-            "name": self.name,
-            "allocation_fraction": self.allocation_percent / 100,
-            "maximum_trade_usd": self.maximum_trade_usd,
-            "model_threshold": self.confidence_percent / 100,
-            "minimum_edge": self.minimum_edge_percent / 100,
-            "entry_cutoff_seconds": self.entry_cutoff_seconds,
-            "max_trades": self.max_trades,
-            "target_profit_usd": self.target_profit_usd,
-            "max_loss_usd": self.max_loss_usd,
-            "thin_gap_allocation_fraction": self.thin_gap_allocation_percent / 100,
-            "movement_disagreement_allocation_fraction": (
-                self.movement_disagreement_allocation_percent / 100),
-        }
+        return {"name": None, **production_configuration()}
 
 
-class TradingSessionUpdate(BaseModel):
-    name: str | None = Field(None, max_length=60)
-    allocation_percent: float | None = Field(None, gt=0, le=100)
-    maximum_trade_usd: float | None = Field(None, gt=0, le=1_000_000)
-    confidence_percent: float | None = Field(None, ge=50, le=98)
-    minimum_edge_percent: float | None = Field(None, ge=0, lt=100)
-    entry_cutoff_seconds: float | None = Field(None, ge=5, lt=110)
-    max_trades: int | None = Field(None, ge=1, le=288)
-    target_profit_usd: float | None = Field(None, gt=0, le=1_000_000)
-    max_loss_usd: float | None = Field(None, gt=0, le=1_000_000)
-    thin_gap_allocation_percent: float | None = Field(None, ge=0, le=100)
-    movement_disagreement_allocation_percent: float | None = Field(None, ge=0, le=100)
+class RecoveredExecutionUpdate(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    enabled: bool
+
+
+class FundTransfer(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    source: Literal["core_trading", "profit_trading", "safe_reserve"]
+    destination: Literal["core_trading", "profit_trading", "safe_reserve"]
+    amount: Decimal = Field(gt=0, max_digits=12, decimal_places=6)
 
     @model_validator(mode="after")
-    def validate_required_values(self):
-        required = {"allocation_percent", "confidence_percent",
-                    "minimum_edge_percent", "entry_cutoff_seconds",
-                    "thin_gap_allocation_percent",
-                    "movement_disagreement_allocation_percent"}
-        for field in required & self.model_fields_set:
-            if getattr(self, field) is None:
-                raise ValueError(f"{field} cannot be cleared")
-        if "name" in self.model_fields_set and self.name is not None:
-            self.name = self.name.strip() or None
+    def different_wallets(self):
+        if self.source == self.destination:
+            raise ValueError("Source and destination must be different")
         return self
-
-    def runtime_changes(self):
-        source = self.model_dump(exclude_unset=True)
-        mapped = {
-            "allocation_percent": "allocation_fraction",
-            "confidence_percent": "model_threshold",
-            "minimum_edge_percent": "minimum_edge",
-            "thin_gap_allocation_percent": "thin_gap_allocation_fraction",
-            "movement_disagreement_allocation_percent": (
-                "movement_disagreement_allocation_fraction"),
-        }
-        changes = {}
-        for key, value in source.items():
-            if key == "name":
-                changes[key] = value
-            elif key in ("allocation_percent", "confidence_percent",
-                          "minimum_edge_percent", "thin_gap_allocation_percent",
-                          "movement_disagreement_allocation_percent"):
-                changes[mapped[key]] = value / 100
-            else:
-                changes[key] = value
-        return changes
 
 
 class ManualOrderPreview(BaseModel):
@@ -271,16 +210,6 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
         }
         return session
 
-    @app.patch("/api/v1/trading/sessions/{session_id}")
-    def trading_session_update(session_id: str, request: TradingSessionUpdate):
-        if sessions is None:
-            raise HTTPException(503, "Trading-session runtime is unavailable")
-        try:
-            sessions.update(session_id, request.runtime_changes())
-        except ValueError as error:
-            raise HTTPException(409, str(error).replace("_", " ")) from error
-        return repository.trading_session(session_id)
-
     @app.post("/api/v1/trading/sessions/{session_id}/stop")
     def trading_session_stop(session_id: str):
         if sessions is None:
@@ -290,6 +219,44 @@ def create_app(data_dir: Path | str = Path("data"), live_store: LiveStore | None
         except ValueError as error:
             raise HTTPException(409, "Trading session is not active") from error
         return {"session_id": session_id, "status": "STOPPING"}
+
+    @app.get("/api/v1/trading/funds")
+    def trading_funds(
+            activity_limit: int = Query(20, ge=1, le=100),
+            activity_offset: int = Query(0, ge=0)):
+        if sessions is None:
+            raise HTTPException(503, "Trading-session runtime is unavailable")
+        return sessions.funds(
+            activity_limit=activity_limit,
+            activity_offset=activity_offset)
+
+    @app.patch("/api/v1/trading/sessions/{session_id}/recovered-signals")
+    def recovered_signals_update(session_id: str,
+                                 request: RecoveredExecutionUpdate):
+        if sessions is None:
+            raise HTTPException(503, "Trading-session runtime is unavailable")
+        try:
+            return sessions.set_recovered_signals_enabled(
+                session_id, request.enabled)
+        except ValueError as error:
+            raise HTTPException(409, "Trading session is not active") from error
+
+    @app.post("/api/v1/trading/sessions/{session_id}/fund-transfers")
+    def fund_transfer(session_id: str, request: FundTransfer):
+        if sessions is None:
+            raise HTTPException(503, "Trading-session runtime is unavailable")
+        try:
+            return sessions.transfer_funds(
+                session_id, request.source, request.destination,
+                float(request.amount))
+        except ValueError as error:
+            messages = {
+                "trading_session_not_active": "Trading session is not active",
+                "invalid_fund_transfer": "Choose two different valid wallets",
+                "invalid_fund_transfer_amount": "Transfer amount must be positive",
+                "fund_transfer_exceeds_balance": "Transfer exceeds the source wallet balance",
+            }
+            raise HTTPException(409, messages.get(str(error), str(error))) from error
 
     @app.get("/api/v1/account")
     def account_snapshot():

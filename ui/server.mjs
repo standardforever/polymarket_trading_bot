@@ -5,6 +5,7 @@ import { fileURLToPath } from "node:url";
 
 const root = fileURLToPath(new URL(".", import.meta.url));
 const port = Number(process.env.UI_PORT || 5173);
+const host = process.env.UI_HOST || "127.0.0.1";
 const types = { ".html": "text/html", ".js": "text/javascript", ".css": "text/css", ".svg": "image/svg+xml" };
 
 createServer(async (request, response) => {
@@ -22,6 +23,6 @@ createServer(async (request, response) => {
   } catch {
     response.writeHead(404).end("Not found");
   }
-}).listen(port, "127.0.0.1", () => {
-  console.log(`UI running at http://127.0.0.1:${port}`);
+}).listen(port, host, () => {
+  console.log(`UI running at http://${host}:${port}`);
 });

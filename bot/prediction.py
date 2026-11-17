@@ -4,7 +4,8 @@ import math
 from collections import deque
 from statistics import NormalDist
 
-from .strategy import RECOMMENDED_CONFIDENCE, probability_snapshot
+from .strategy import (MINIMUM_STRENGTH, RECOMMENDED_CONFIDENCE,
+                       probability_snapshot)
 from .trading import (MINIMUM_EDGE, MINIMUM_SHARES, healthy_book,
                       market_fee_rate, points_before, prior, valid_book)
 
@@ -134,7 +135,11 @@ def analytic_signal(component_rows, quotes, taker_fee_rate):
         result["estimated_edge"] = chance - ask - taker_fee_rate * ask * (1 - ask)
 
     if chance < minimum_probability:
-        result["reason"] = "analytic_probability_below_90pct"
+        result["reason"] = "analytic_probability_below_98pct"
+        return result
+    if abs(z_score) <= MINIMUM_STRENGTH:
+        result["reason"] = "analytic_strength_below_threshold"
+        result["minimum_strength"] = MINIMUM_STRENGTH
         return result
     movement_disagreement = momentum_sign != side_sign
     spot_gap_bps = abs(float(settlement["spot_gap_bps"]))
@@ -144,15 +149,16 @@ def analytic_signal(component_rows, quotes, taker_fee_rate):
     thin_gap_distance = min(spot_gap_bps, twap_gap_bps)
     thin_gap = thin_gap_distance < THIN_GAP_BPS
     combined_risk = thin_gap and movement_disagreement
-    regime_risk = thin_gap and movement.get("regime") == "choppy_up"
-    risk_blocked = combined_risk or regime_risk
+    regime_risk = False
+    risk_blocked = thin_gap or movement_disagreement
     result.update(thin_gap=thin_gap, thin_gap_threshold_bps=THIN_GAP_BPS,
                   thin_gap_distance_bps=thin_gap_distance,
                   thin_gap_source="spot_or_twap",
                   movement_disagreement=movement_disagreement,
                   combined_risk=combined_risk, regime_risk=regime_risk,
                   risk_blocked=risk_blocked,
-                  risk_rule="thin_gap_and_movement_or_choppy_up")
+                  risk_rule="thin_gap_or_movement_disagreement",
+                  minimum_strength=MINIMUM_STRENGTH)
     if movement_disagreement:
         result["warnings"].append("movement_disagreement")
     if thin_gap:
@@ -160,7 +166,8 @@ def analytic_signal(component_rows, quotes, taker_fee_rate):
     if movement.get("regime") == "choppy_up":
         result["warnings"].append("choppy_up_regime")
     if risk_blocked:
-        result["reason"] = "analytic_combined_risk"
+        result["reason"] = ("analytic_thin_gap" if thin_gap
+                            else "analytic_movement_disagreement")
         return result
     if market_sign != side_sign:
         result["reason"] = "analytic_disagreement:market"
