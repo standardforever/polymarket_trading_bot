@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en" class="no-js">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#ffffff">
+  <title>Five — Bitcoin trading that runs on math</title>
+  <meta name="description" content="Five watches every Bitcoin round on Polymarket and only trades when the numbers are strongly on its side. It runs on your own computer.">
+  <meta property="og:title" content="Five — Bitcoin trading that runs on math">
+  <meta property="og:description" content="Five watches every Bitcoin round on Polymarket and only trades when the numbers are strongly on its side.">
+  <meta property="og:image" content="img/hero-street-desktop.jpg">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230a0a0a'/%3E%3Crect x='13' y='7' width='6' height='6' fill='white'/%3E%3Crect x='13' y='15' width='6' height='10' rx='1' fill='white'/%3E%3C/svg%3E">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="preload" as="image" href="img/hero-street-desktop.jpg" media="(min-width: 768px)">
+  <link rel="preload" as="image" href="img/hero-street-mobile.jpg" media="(max-width: 767px)">
+  <link rel="stylesheet" href="css/landing.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<div class="progress" aria-hidden="true"><i id="progress"></i></div>
+
+<header class="nav" id="nav">
+  <div class="wrap nav-inner">
+    <a class="brand" href="#top" aria-label="Five home"><span class="wordmark" aria-hidden="true">f<span class="wm-i">ı<span class="wm-dot"></span></span>ve</span></a>
+    <nav class="nav-links" aria-label="Sections">
+      <a href="#how">How it works</a><a href="#results">Results</a><a href="#faq">FAQ</a>
+    </nav>
+    <a class="btn btn-ink btn-sm" href="https://github.com/standardforever/polymarket_trading_bot" target="_blank" rel="noopener">Set up</a>
+  </div>
+</header>
+
+<main id="main">
+  <!-- ═════ Hero ═════ -->
+  <section class="hero" id="top">
+    <picture class="hero-photo" aria-hidden="true">
+      <source media="(max-width: 767px)" srcset="img/hero-street-mobile.jpg">
+      <img src="img/hero-street-desktop.jpg" alt="" width="1672" height="941" fetchpriority="high">
+    </picture>
+    <div class="hero-fade" aria-hidden="true"></div>
+    <div class="wrap hero-copy">
+      <h1>Bitcoin trading that runs on math.</h1>
+      <p class="lead">Five watches every Bitcoin round on Polymarket and only trades when the numbers are strongly on its side.</p>
+      <div class="hero-actions">
+        <a class="btn btn-ink" href="https://github.com/standardforever/polymarket_trading_bot" target="_blank" rel="noopener">Set up</a>
+        <a class="btn btn-line" href="#how">How it works</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ How it works: a real local setup, pinned while you scroll ═════ -->
+  <section class="how" id="how">
+    <div class="how-pin">
+      <div class="wrap how-grid">
+        <div class="how-intro">
+          <h2 class="h2">Set it up on your own computer.</h2>
+          <p class="sub">Four steps, a few minutes. Five and your keys never leave your machine.</p>
+          <ol class="how-steps" id="howSteps">
+            <li class="how-step" data-step="1"><button type="button"><span class="num">1</span><span class="txt"><b>Clone the code</b><small>Download Five from GitHub to your computer.</small></span><span class="bar" aria-hidden="true"><i></i></span></button></li>
+            <li class="how-step" data-step="2"><button type="button"><span class="num">2</span><span class="txt"><b>Add your Polymarket keys</b><small>Copy the example settings file and paste your keys in.</small></span><span class="bar" aria-hidden="true"><i></i></span></button></li>
+            <li class="how-step" data-step="3"><button type="button"><span class="num">3</span><span class="txt"><b>Start it with one command</b><small>Docker starts Five and its dashboard together.</small></span><span class="bar" aria-hidden="true"><i></i></span></button></li>
+            <li class="how-step" data-step="4"><button type="button"><span class="num">4</span><span class="txt"><b>Press Start</b><small>Five watches every round and only trades when the numbers line up.</small></span><span class="bar" aria-hidden="true"><i></i></span></button></li>
+          </ol>
+        </div>
+
+        <div class="how-stage" id="howStage">
+          <div class="term" id="term" role="img" aria-label="Terminal showing the setup commands: git clone, copy the settings file, docker compose up">
+            <div class="term-bar"><i></i><i></i><i></i><span>polymarket_trading_bot</span></div>
+            <div class="term-body"><div class="term-lines" id="termLines"></div></div>
+          </div>
+
+          <div class="dash" id="dash" aria-hidden="true">
+            <div class="dash-bar">
+              <span class="wordmark wordmark-sm">f<span class="wm-i">ı<span class="wm-dot"></span></span>ve</span>
+              <span class="dash-btn" id="dashBtn"><i></i><span id="dashBtnText">Start</span></span>
+            </div>
+            <div class="dash-body">
+              <div class="round-head">
+                <div><b>Bitcoin</b><small>Up or down in the next 5 minutes</small></div>
+                <span class="round-clock" id="roundClock">5:00 left</span>
+              </div>
+              <div class="round-chart"><canvas id="roundCanvas"></canvas></div>
+              <div class="round-status" id="roundStatus"><i class="round-dot"></i><span id="roundStatusText">Waiting for Start</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═════ Why ═════ -->
+  <section class="section why" id="why">
+    <div class="wrap">
+      <header class="head reveal">
+        <h2 class="h2">Patient by design.</h2>
+        <p class="sub">Most rounds, Five does nothing. It waits for the few where the numbers are clearly on its side.</p>
+      </header>
+
+      <figure class="day reveal" id="day">
+        <div class="day-head">
+          <b>One day of rounds</b>
+          <span class="day-count"><span class="tnum" id="dayTraded">0</span> traded, <span class="tnum" id="daySkipped">0</span> skipped</span>
+        </div>
+        <div class="day-cells" id="dayCells" aria-hidden="true"></div>
+        <figcaption id="dayCaption">A day has 288 five-minute rounds. Black squares are the rounds Five traded.</figcaption>
+      </figure>
+
+      <ul class="features">
+        <li class="reveal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 7.6-7 9-4-1.4-7-4.5-7-9V6l7-3z"/><path d="M9 12l2.2 2.2L15.5 10"/></svg>
+          <h3>Gains set aside</h3><p>Profits are moved out of the trading pot so they aren’t put back at risk.</p>
+        </li>
+        <li class="reveal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v8"/><path d="M6.3 7.3a8 8 0 1 0 11.4 0"/></svg>
+          <h3>You’re in charge</h3><p>Start and stop with one button, or place your own trades any time.</p>
+        </li>
+        <li class="reveal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+          <h3>Private and yours</h3><p>Your funds stay in your Polymarket account. Your keys stay on your computer.</p>
+        </li>
+        <li class="reveal">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01"/></svg>
+          <h3>Every move recorded</h3><p>Each round is logged with what Five decided and why.</p>
+        </li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- ═════ Dashboard ═════ -->
+  <section class="section show" id="product">
+    <div class="wrap">
+      <header class="head center reveal">
+        <h2 class="h2">Everything in one dashboard.</h2>
+        <p class="sub">The live round, what Five decided, and how you’re doing.</p>
+      </header>
+      <div class="tabs reveal" id="tabs" role="tablist" aria-label="Dashboard views">
+        <button role="tab" data-tab="live" class="on" aria-selected="true">Live view</button>
+        <button role="tab" data-tab="insights" aria-selected="false">Your results</button>
+      </div>
+      <div class="frame-wrap" id="frameWrap">
+        <figure class="frame" id="frame">
+          <div class="frame-bar"><i></i><i></i><i></i></div>
+          <div class="frame-imgs">
+            <img class="shot on" id="shotLive" src="img/trade.jpg" width="2220" height="1410" alt="The live view of the Five dashboard" loading="lazy">
+            <img class="shot" id="shotInsights" src="img/insights.jpg" width="2220" height="1410" alt="Your results in the Five dashboard" loading="lazy">
+          </div>
+        </figure>
+      </div>
+      <p class="caption" id="caption">The live round against the price to beat, with Five’s decision and one-click controls.</p>
+    </div>
+  </section>
+
+  <!-- ═════ Results ═════ -->
+  <section class="section results-section" id="results">
+    <div class="wrap">
+      <header class="head reveal">
+        <h2 class="h2">Real money. Real results.</h2>
+        <p class="sub" id="resSub">Results from Five’s live trading.</p>
+      </header>
+      <div class="results reveal">
+        <div class="stats" id="stats"></div>
+        <div class="chart-card">
+          <div class="chart-head"><b>Profit over time</b><span id="chartNote">Hover to explore</span></div>
+          <div class="chart-box" id="chartBox"><canvas id="profitCanvas" aria-label="Cumulative profit over time" role="img"></canvas><div class="tip" id="tip"></div></div>
+        </div>
+      </div>
+      <p class="fineprint reveal">Small sample from live trading. Past results don’t guarantee future results, and you can lose money.</p>
+    </div>
+  </section>
+
+  <!-- ═════ FAQ ═════ -->
+  <section class="section faq-section" id="faq">
+    <div class="wrap faq-grid">
+      <header class="head reveal"><h2 class="h2">Questions.</h2></header>
+      <div class="faq reveal" id="faqList"></div>
+    </div>
+  </section>
+
+  <!-- ═════ Final ═════ -->
+  <section class="final-wrap" id="start">
+    <div class="final reveal">
+      <h2>Run Five on your own computer.</h2>
+      <p>Clone it, add your keys, press Start.</p>
+      <div class="final-actions">
+        <a class="btn btn-white" href="https://github.com/standardforever/polymarket_trading_bot" target="_blank" rel="noopener">Set up</a>
+        <a class="btn btn-outline-white" href="#how">How it works</a>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="wrap foot">
+    <span class="wordmark" aria-label="Five">f<span class="wm-i">ı<span class="wm-dot"></span></span>ve</span>
+    <p>Trading involves risk, including the loss of money. Five is experimental software, not financial advice, and past results don’t guarantee future results. Not affiliated with or endorsed by Polymarket.</p>
+  </div>
+</footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
